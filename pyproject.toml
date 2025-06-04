@@ -1,0 +1,90 @@
+[project]
+name = "hp-backend"
+version = "0.1.0"
+description = "Housing & Properties - Multi-sided marketplace backend"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dj-database-url>=3.0.0",
+    "django>=5.2.1",
+    "django-cors-headers>=4.7.0",
+    "django-environ>=0.12.0",
+    "djangorestframework-simplejwt>=5.5.0",
+    "drf-spectacular>=0.28.0",
+    "drf-spectacular-sidecar>=2025.6.1",
+    "loguru>=0.7.3",
+    "whitenoise>=6.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "django-debug-toolbar>=5.2.0",
+    "faker>=37.3.0",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.1.1",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+lint.select = [
+    "B",  # flake8-bugbear
+    "C",  # flake8-comprehensions
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "UP", # pyupgrade
+    "W",  # pycodestyle warnings
+]
+lint.ignore = [
+    "E501",  # line too long
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "migrations",
+    "venv",
+    ".venv",
+]
+
+[tool.ruff.lint.isort]
+known-third-party = ["django", "rest_framework", "celery", "loguru"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+addopts = [
+    "--reuse-db",
+    "--nomigrations",
+    "--cov=.",
+    "--cov-report=html",
+    "--cov-report=term-missing:skip-covered",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/venv/*",
+    "*/config/*",
+    "manage.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.setuptools]
+packages = ["api","apps","core","config","tests"]
