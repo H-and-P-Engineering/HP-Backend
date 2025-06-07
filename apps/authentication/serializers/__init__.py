@@ -1,5 +1,4 @@
 from apps.authentication.serializers.authentication import (
-    EmailVerificationSerializer,
     ErrorResponseExampleSerializer,
     TokenSerializer,
     UserLoginSerializer,
@@ -9,7 +8,6 @@ from apps.authentication.serializers.authentication import (
 __all__ = [
     "UserRegistrationSerializer",
     "UserLoginSerializer",
-    "EmailVerificationSerializer",
     "TokenSerializer",
     "ErrorResponseExampleSerializer",
 ]

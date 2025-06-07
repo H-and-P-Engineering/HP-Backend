@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.authentication.serializers import (
-    EmailVerificationSerializer,
     ErrorResponseExampleSerializer,
     TokenSerializer,
     UserLoginSerializer,
@@ -84,18 +83,16 @@ class EmailVerificationView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
-        request=EmailVerificationSerializer,
-        responses={200: None, "400 - 500": ErrorResponseExampleSerializer},
+        request=None,
+        responses={
+            200: {"message": "string"},
+            "400 - 500": ErrorResponseExampleSerializer,
+        },
         description="Verify email address",
         tags=["Authentication"],
     )
     def post(self, request: Request, user_id: str, verification_token: str) -> Response:
         """Handle email verification."""
-
-        serializer = EmailVerificationSerializer(
-            data={"user_id": user_id, "token": verification_token}
-        )
-        serializer.is_valid(raise_exception=True)
 
         authentication_service.verify_email(user_id=user_id, token=verification_token)
 

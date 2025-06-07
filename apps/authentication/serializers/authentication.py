@@ -39,13 +39,6 @@ class UserLoginSerializer(serializers.Serializer):
     )
 
 
-class EmailVerificationSerializer(serializers.Serializer):
-    """Serializer for email verification requests."""
-
-    user_id = serializers.CharField(write_only=True)
-    token = serializers.CharField(write_only=True, help_text="Email verification token")
-
-
 class TokenSerializer(serializers.Serializer):
     """
     Serializer for JWT token response.
