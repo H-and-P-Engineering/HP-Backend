@@ -46,6 +46,10 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    "oauth2_provider",
+    "social_django",
+    "drf_social_oauth2",
+    "django_extensions",
 ]
 
 LOCAL_APPS = [
@@ -206,3 +210,35 @@ EMAIL_BACKEND = env.str(
 
 # Verification token expiry
 VERIFICATION_TOKEN_EXPIRY = env.int("VERIFICATION_TOKEN_EXPIRY", default=15)  # minutes
+
+# Social authentication config
+SOCIAL_AUTH_USER_MODEL = "authentication.User"
+SOCIAL_AUTH_JSONFIELD_ENABLED = True
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_PIPELINE = [
+    "social_core.pipeline.social_auth.social_details",
+    "social_core.pipeline.social_auth.social_uid",
+    "social_core.pipeline.social_auth.auth_allowed",
+    "social_core.pipeline.social_auth.social_user",
+    "social_core.pipeline.user.get_username",
+    "social_core.pipeline.social_auth.associate_by_email",
+    "config.pipeline.create_user",
+    "social_core.pipeline.social_auth.associate_user",
+    "social_core.pipeline.social_auth.load_extra_data",
+    "social_core.pipeline.user.user_details",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "social_core.backends.google.GoogleOAuth2",
+    "social_core.backends.facebook.FacebookOAuth2",
+    "social_core.backends.instagram.InstagramOAuth2",
+]
+
+# Google OAuth2 config
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env.str("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY", default="")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env.str(
+    "SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET", default=""
+)
+SOCIAL_AUTH_GOOGLE_OAUTH2_USER_FIELDS = ["email", "first_name", "last_name"]
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["email", "profile"]

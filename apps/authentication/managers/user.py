@@ -14,6 +14,7 @@ from core.exceptions import BadRequestError, ConflictError
 
 if TYPE_CHECKING:
     from apps.authentication.models import User
+
 from core.models import BaseManager, BaseQuerySet
 
 
@@ -32,12 +33,18 @@ class UserQuerySet(BaseQuerySet):
 
 
 class UserManager(auth_models.BaseUserManager, BaseManager):
-    """Custom Manager for User model."""
+    """
+    Custom Manager for User model.
+
+    Handles both email-based and social-based registrations.
+    """
 
     def get_queryset(self):
         return UserQuerySet(model=self.model, using=self._db)
 
-    def _create_user(self, email: str, password: str, **extra_fields) -> "User":
+    def _create_user(
+        self, email: str, password: str | None = None, **extra_fields
+    ) -> "User":
         """Factory for user creation."""
 
         if not email:
@@ -47,7 +54,10 @@ class UserManager(auth_models.BaseUserManager, BaseManager):
 
         user = self.model(email=email, **extra_fields)
 
-        user.set_password(password)
+        if not password:
+            user.set_unusable_password()
+        else:
+            user.set_password(password)
 
         try:
             user.save(using=self._db)
@@ -55,6 +65,7 @@ class UserManager(auth_models.BaseUserManager, BaseManager):
         except IntegrityError as e:
             if "email" in str(e):
                 raise ConflictError(f"User with email '{email}' already exists") from e
+
             raise ConflictError(str(e)) from e
         except Exception as e:
             raise e
@@ -62,7 +73,11 @@ class UserManager(auth_models.BaseUserManager, BaseManager):
         return user
 
     def create_user(
-        self, email: str, password: str, user_type: str = "CLIENT", **extra_fields
+        self,
+        email: str,
+        password: str | None = None,
+        user_type: str = "CLIENT",
+        **extra_fields,
     ) -> "User":
         """Create and save a regular user."""
 

@@ -10,7 +10,9 @@ from .email import EmailService
 
 if TYPE_CHECKING:
     from authentication.models import User as UserType
+
 import re
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework.authentication import authenticate
@@ -95,7 +97,78 @@ class AuthenticationService:
 
         return True
 
+    def begin_social_authentication(
+        self, request: Any, backend: str, user_type: str
+    ) -> Any:
+        """Begin the social authentication process."""
+
+        from django.contrib.auth import REDIRECT_FIELD_NAME
+        from social_core.actions import do_auth
+
+        if user_type and user_type not in User.UserType.values:
+            raise ValidationError(_("Invalid user type"))
+
+        request.session["user_type"] = user_type
+        request.session.save()
+
+        return do_auth(request.backend, redirect_name=REDIRECT_FIELD_NAME)
+
+    def complete_social_authentication(self, request, backend):
+        """
+        Complete the social authentication process.
+
+        Handles both partial and full pipeline completion, generates tokens for the user.
+        """
+
+        from social_core.utils import (
+            partial_pipeline_data,
+            user_is_active,
+            user_is_authenticated,
+        )
+
+        backend = request.backend
+        user = request.user
+        user_type = request.session.get("user_type", User.UserType.CLIENT)
+
+        if "user_type" in request.session:
+            del request.session["user_type"]
+
+        is_user_authenticated = user_is_authenticated(user)
+        user = user if is_user_authenticated else None
+
+        partial = partial_pipeline_data(backend, user)
+        if partial:
+            user = backend.continue_pipeline(partial, user_type=user_type)
+            backend.clean_partial_pipeline(partial.token)
+        else:
+            user = backend.complete(user=user, user_type=user_type)
+
+        user_model = backend.strategy.storage.user.user_model()
+        if user and not isinstance(user, user_model):
+            raise BadRequestError(
+                _("Social authentication failed. Invalid User object.")
+            )
+
+        if not user:
+            raise BadRequestError(_("Requested user account is inactive"))
+
+        if not user_is_active(user):
+            raise BadRequestError(_("This account has been deactivated"))
+
+        tokens = self._generate_authentication_tokens(user)
+
+        return user, tokens
+
     def _validate_password(self, password: str) -> None:
+        """
+        Validate password strength.
+
+        Ensures the password contains at least one uppercase letter, one lowercase letter,
+        one digit, one special character, and no spaces.
+        """
+        if " " in password:
+            raise ValidationError({"password": "Password must not contain spaces."})
+
         if not re.search(r"[A-Z]", password):
             raise ValidationError(
                 {
