@@ -121,7 +121,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "core.infrastructure.exceptions.hp_exception_handler",
 }
 
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default="").split(",")
+CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 SPECTACULAR_SETTINGS = {
