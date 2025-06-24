@@ -1,4 +1,5 @@
 import logging
+import sys
 from functools import lru_cache
 
 from django.conf import settings
@@ -34,10 +35,15 @@ def setup_logging() -> None:
     logger.configure(
         handlers=[
             {
+                "sink": sys.stdout,
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <5}</level> | <cyan>{file}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+                "filter": lambda record: record["extra"].get("target") != "file",
+            },
+            {
                 "sink": settings.LOG_FILE,
                 "rotation": "10 MB",
                 "retention": "10 days",
-                "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {file}:{line} - {message}",  # noqa
+                "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {file}:{line} - {message}", 
             },
         ]
     )

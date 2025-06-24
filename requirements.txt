@@ -23,6 +23,7 @@ drf-spectacular-sidecar==2025.6.1
 faker==37.4.0
 filelock==3.18.0
 gunicorn==23.0.0
+-e file:///home/iamprecieee/Desktop/hp-clean
 identify==2.6.12
 idna==3.10
 inflection==0.5.1
@@ -47,6 +48,7 @@ pytest==8.4.1
 pytest-cov==6.2.1
 python3-openid==3.2.0
 pyyaml==6.0.2
+redis==6.2.0
 referencing==0.36.2
 requests==2.32.4
 requests-oauthlib==2.0.0
