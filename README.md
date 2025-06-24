@@ -35,36 +35,35 @@ The project follows a **modular monolith architecture** with clear domain bounda
 ## 📁 Project Structure
 
 ```ini
-🏠 housing_properties/
-├── 📱 apps/                     # Domain-specific applications
-│   └── 🔐 authentication/       # Authentication & user management
+🏠 housing_&_properties/
+├── 📱 apps/                      # Domain-specific applications
+│   └── 🔐 authentication/        # Authentication & user management
 │       ├── 🌐 application/       # Application-specific business rules (use cases)
-│       ├── 🗄️ domain/           # Core domain models and interfaces (ports)
+│       ├── 🗄️ domain/            # Core domain models and interfaces (ports)
 │       ├── 🛠️ infrastructure/    # Concrete implementations of domain ports (adapters), ORM models, services
 │       ├── 📋 presentation/      # API views and serializers
-│       └── ⚡ apps.py            # Authentication AppConfig
-├── 🌐 api/                      # API versioning and routing
-│   └── 📋 v1/                  # Version 1 API
-│       └── authentication.py  # Authentication API endpoints
-├── ⚙️ config/                   # Django settings and configuration
-│   ├── 🔧 settings/             # Environment-specific settings
-│   │   ├── 📋 base.py           # Common settings
-│   │   ├── 🔨 development.py    # Development configuration
-│   │   ├── 🚀 production.py     # Production configuration
-│   │   └── 🧪 test.py           # Testing configuration
-│   ├── 🔗 urls.py               # Root URL configuration
-│   └── 🌐 wsgi.py               # WSGI configuration
-├── 🛠️ core/                     # Shared utilities and base classes
-│   ├── 🌐 application/          # Shared application-level components (e.g., base exceptions)
-│   ├── 🗄️ domain/               # Shared domain components (currently empty but ready for expansion)
+│       └── ⚡ apps.py             # Authentication AppConfig
+├── 🌐 api/                       # API versioning and routing
+│   └── 📋 v1/                    # Version 1 API
+│       └── authentication.py     # Authentication API endpoints
+├── ⚙️ config/                    # Django settings and configuration
+│   ├── 🔧 settings/              # Environment-specific settings
+│   │   ├── 📋 base.py            # Common settings
+│   │   ├── 🔨 development.py     # Development configuration
+│   │   ├── 🚀 production.py      # Production configuration
+│   │   └── 🧪 test.py            # Testing configuration
+│   ├── 🔗 urls.py                # Root URL configuration
+│   └── 🌐 wsgi.py                # WSGI configuration
+├── 🛠️ core/                      # Shared utilities and base classes
+│   ├── 🌐 application/           # Shared application-level components (e.g., base exceptions)
+│   ├── 🗄️ domain/                # Shared domain components (currently empty but ready for expansion)
 │   ├── 🛠️ infrastructure/        # Shared infrastructure components (e.g., exceptions, logging, templates)
 │   ├── 📋 presentation/          # Shared presentation components (e.g., responses, serializers)
-├── 📝 logs/                     # Application logs
-├── 📄 .env.template             # Environment variables template
-├── 🔧 Makefile                  # Common development commands
-├── ⚙️ manage.py                 # Django management script
-├── 🔍 pre-commit-config.yaml    # Pre-commit configuration
-└── 📦 pyproject.toml            # Project dependencies & tools config
+├── 📝 logs/                      # Application logs
+├── 📄 .env.template              # Environment variables template
+├── 🔧 Makefile                   # Common development commands
+├── ⚙️ manage.py                  # Django management script
+└── 📦 pyproject.toml             # Project dependencies & tools config
 ```
 
 ---
@@ -90,11 +89,6 @@ The project follows a **modular monolith architecture** with clear domain bounda
 - 📈 **Performance monitoring** and audit trails enabled through configurable logging levels.
 - 🎯 **Environment-specific logging levels** controlled by `DJANGO_LOGGING_LEVEL` environment variable.
 
-#### 🗄️ **Base Models**
-- 📋 **Abstract base model** (if applicable - currently not explicitly in core, but assumed for common fields if `BaseModel` exists and is used) with common fields like timestamps.
-- ⏰ **Automatic timestamps** (`created_at`, `updated_at`).
-- 🆔 **UUID7 integration** for public, time-ordered, and globally unique identifiers (seen in `authentication.User`).
-
 #### 📚 **API Documentation**
 - 📖 **Swagger UI** for interactive API exploration via `drf-spectacular`.
 - 📋 **ReDoc** for comprehensive API documentation via `drf-spectacular`.
@@ -119,9 +113,8 @@ The project follows a **modular monolith architecture** with clear domain bounda
 
 *Note: User profiles (AgentProfile, VendorProfile, ClientProfile) are conceptually described in the documentation but are not currently implemented as separate Django models or domain models in the provided codebase. This is a future enhancement.*
 
-#### 🔧 **Custom Managers and QuerySets**
+#### 🔧 **Custom Managers**
 - 🧠 **Business logic encapsulation** in `UserManager` methods (e.g., `create_user`, `create_superuser`).
-- 🔗 **Chainable QuerySet methods** for database interactions via repositories (e.g., `DjangoUserRepository`).
 
 #### 🔗 **Social Authentication**
 - 🔵 **Google OAuth2** integration using `drf-social-oauth2` and `python-social-auth`.
