@@ -2,7 +2,7 @@ from config.settings.base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+ALLOWED_HOSTS = env.str("DJANGO_ALLOWED_HOSTS").split(",")
 
 CACHES = {
     "default": {
