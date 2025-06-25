@@ -27,7 +27,7 @@ class UserType(StrEnum):
 @dataclass
 class User:
     email: str
-    password_hash: str | None = None
+    password_hash: str | None = field(default=None, repr=False)
     first_name: str = ""
     last_name: str = ""
     user_type: UserType = UserType.CLIENT
@@ -45,7 +45,7 @@ class User:
 
 @dataclass
 class BlackListedToken:
-    access: str
+    access: str = field(repr=False)
     user_id: int
     expires_at: datetime
     id: int | None = None

@@ -157,7 +157,7 @@ AUTHENTICATION_BACKENDS = [
 
 FROM_DOMAIN = env.str("FROM_DOMAIN", default="http://127.0.0.1:8000")
 
-DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=15)
+DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)
 CACHES = {
     "default": {
         "BACKEND": env.str(

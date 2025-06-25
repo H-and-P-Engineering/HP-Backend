@@ -96,7 +96,7 @@ class DjangoUserRepository(UserRepositoryInterface):
         is_new_user = getattr(social_user, "is_new")
 
         domain_user = self._to_domain_user_data(social_user)
-        domain_user.is_new = is_new_user.dict
+        domain_user.is_new = is_new_user
 
         return domain_user
 
