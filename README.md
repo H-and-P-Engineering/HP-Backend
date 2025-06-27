@@ -230,28 +230,77 @@ Ensure your project root directory (HP-Backend/) contains the following files:
 
 *   `Dockerfile`
 *   `docker-compose.yml`
+*   `startup.sh` (Startup script with conditional SSL support)
 *   `.env` (This file should NOT be committed to version control)
-*   `requirements.txt` (or `pyproject.toml` if you use poetry/pipenv)
+*   `pyproject.toml` (uv package management)
 
-### 2. Configure the `.env` File
+### 2. Docker Configuration Files
+
+#### `Dockerfile`
+```dockerfile
+FROM python:3.12-slim-bookworm
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+COPY . .
+RUN chmod +x /app/startup.sh
+RUN uv sync
+```
+
+#### `docker-compose.yml`
+```yaml
+services:
+  web:
+    build: .
+    command: ./startup.sh
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+
+volumes:
+  static_volume:
+  media_volume: 
+```
+
+#### `startup.sh`
+```bash
+#!/bin/bash
+uv run manage.py collectstatic --noinput
+uv run manage.py migrate
+if [ "$DJANGO_ENVIRONMENT" = "development" ]; then
+    echo "Starting Gunicorn with SSL for development..."
+    uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000 --certfile cert.crt --keyfile cert.key
+else
+    echo "Starting Gunicorn without SSL..."
+    uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000
+fi
+```
+
+### 3. Configure the `.env` File
 
 The `.env` file holds critical environment variables for your application, including sensitive credentials for external services. Create a file named `.env` in the root of your `HP-Backend` directory with the following structure. **Remember to replace all placeholder values with your actual credentials and configurations.**
 
 ```dotenv
+# Django Core Settings
 DJANGO_SECRET_KEY=your_django_secret_key
 DJANGO_DEBUG=False
+DJANGO_ENVIRONMENT=production  # Set to 'development' for SSL/HTTPS in local development
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,<your_domain_if_any>
 
 # External PostgreSQL Database (Azure PostgreSQL Example)
-# Ensure your Django settings (config/settings/base.py) are configured
-# to read this DATABASE_URL directly from the environment.
+# Ensure your Django settings are configured to read this DATABASE_URL
 DJANGO_DATABASE_URL=postgresql://your_database_user:your_database_password@your_azure_postgresql_host.postgres.database.azure.com:5432/your_database_name
 
 DATABASE_CONN_MAX_AGE=600
 
 # External Redis Cache (Upstash Redis Example)
-# Ensure your Django settings (config/settings/production.py) are configured
-# to read this REDIS_URL directly from the environment.
+# Ensure your Django settings are configured to read this REDIS_URL
 REDIS_URL=rediss://default:your_upstash_redis_password@your_upstash_redis_host:6379
 
 # CORS Settings
@@ -268,14 +317,11 @@ EMAIL_HOST_PASSWORD=your_gmail_app_password # Use an App Password for security
 
 # Authentication and Token Settings
 DJANGO_VERIFICATION_TOKEN_EXPIRY=15 # minutes
-FROM_DOMAIN=http://127.0.0.1:8000 # Your backend API URL
-
-# Environment Type (for Django settings)
-DJANGO_ENVIRONMENT=production
+FROM_DOMAIN=http://127.0.0.1:8000 # Your backend API URL (use https:// for production)
 
 # Cache Settings
-DJANGO_CACHE_TIMEOUT=600
-DJANGO_CACHE_BACKEND=django.core.cache.backends.redis.RedisCache # Or other Django cache backend
+DJANGO_CACHE_TIMEOUT=15 # seconds (general cache timeout)
+DJANGO_CACHE_BACKEND=django.core.cache.backends.redis.RedisCache
 
 # Logging Level
 DJANGO_LOGGING_LEVEL=INFO
@@ -285,7 +331,18 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=your_google_oauth2_client_id
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=your_google_oauth2_client_secret
 ```
 
-### 3. Build and Run the Application
+### 4. SSL Certificate Setup (Development Only)
+
+If you're running in development mode (`DJANGO_ENVIRONMENT=development`), you'll need SSL certificates for HTTPS:
+
+```bash
+# Generate self-signed certificates for local development
+openssl req -x509 -newkey rsa:4096 -keyout cert.key -out cert.crt -days 365 -nodes
+```
+
+**Note:** For production deployments, use proper SSL certificates from a Certificate Authority or let your reverse proxy (nginx, CloudFlare, etc.) handle SSL termination.
+
+### 5. Build and Run the Application
 
 Navigate to your `HP-Backend` root directory in the terminal and execute the following command:
 
@@ -296,19 +353,53 @@ docker-compose up --build
 **Explanation of the command:**
 
 *   `docker-compose up`: Starts the services defined in your `docker-compose.yml` file.
-*   `--build`: Ensures that the Docker image for your `web` service is rebuilt (if changes were made to the `Dockerfile` or your application code) before starting the container.
+*   `--build`: Ensures that the Docker image is rebuilt before starting the container.
 
 This command will:
 
-1.  Build the Docker image for your Django application (`hp-backend-web`).
-2.  Start the `hp-backend-web` container.
-3.  Inside the container, it will execute:
-    *   `python manage.py collectstatic --noinput`: Gathers all static files.
-    *   `python manage.py migrate`: Applies any pending database migrations.
-    *   `gunicorn config.wsgi:application --bind 0.0.0.0:8000`: Starts the Gunicorn web server, making your Django application accessible.
+1.  **Build the Docker image** using the optimized Dockerfile with `uv` package manager
+2.  **Start the container** and execute the startup script (`startup.sh`)
+3.  **Inside the container**, the startup script will:
+    *   Run `uv run manage.py collectstatic --noinput`: Gathers all static files
+    *   Run `uv run manage.py migrate`: Applies any pending database migrations
+    *   **Conditionally start Gunicorn**:
+        - **Development**: `uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000 --certfile cert.crt --keyfile cert.key` (with SSL)
+        - **Production**: `uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000` (without SSL)
 
-### 4. Accessing the Application
+### 6. Accessing the Application
 
-Once Docker Compose has finished starting up, your Django application should be accessible via your web browser or API client at:
+Once Docker Compose has finished starting up, your Django application will be accessible at:
 
-`http://localhost:8000`
+- **Development mode** (`DJANGO_ENVIRONMENT=development`): `https://localhost:8000` (SSL enabled)
+- **Production mode**: `http://localhost:8000` (SSL handled by reverse proxy)
+
+### 7. Development vs Production Modes
+
+The application automatically adapts based on the `DJANGO_ENVIRONMENT` variable:
+
+| Environment | SSL | URL | Use Case |
+|-------------|-----|-----|----------|
+| `development` | ✅ Built-in SSL | `https://localhost:8000` | Local development with HTTPS |
+| `production` | ❌ External SSL | `http://localhost:8000` | Production with reverse proxy SSL |
+
+### 8. Container Management
+
+**Common Docker Compose commands:**
+
+```bash
+# Start in detached mode (background)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f web
+
+# Stop services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up --build
+
+# Execute commands inside the running container
+docker-compose exec web uv run manage.py shell
+docker-compose exec web uv run manage.py createsuperuser
+```
