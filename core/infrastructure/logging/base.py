@@ -43,7 +43,7 @@ def setup_logging() -> None:
                 "sink": settings.LOG_FILE,
                 "rotation": "10 MB",
                 "retention": "10 days",
-                "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {file}:{line} - {message}", 
+                "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {file}:{line} - {message}",
             },
         ]
     )

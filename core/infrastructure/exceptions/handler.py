@@ -4,26 +4,17 @@ from typing import Any, Dict, List
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework import status
-from rest_framework.exceptions import (
-    AuthenticationFailed,
-    MethodNotAllowed,
-    NotAuthenticated,
-    NotFound,
-    ParseError,
-    Throttled,
-    ValidationError,
-    APIException,
-)
+from rest_framework.exceptions import (APIException, AuthenticationFailed,
+                                       MethodNotAllowed, NotAuthenticated,
+                                       NotFound, ParseError, Throttled,
+                                       ValidationError)
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from core.application.exceptions import BusinessRuleException
-from core.infrastructure.exceptions import (
-    BadRequestError,
-    ConflictError,
-    UnprocessableEntityError,
-    BaseAPIException,
-)
+from core.infrastructure.exceptions import (BadRequestError, BaseAPIException,
+                                            ConflictError,
+                                            UnprocessableEntityError)
 from core.infrastructure.logging.base import logger
 
 
@@ -41,10 +32,14 @@ def hp_exception_handler(exc: Exception, context: Dict[str, Any]) -> Response | 
         exc = BadRequestError(detail=str(exc))
     elif isinstance(exc, (TypeError, AttributeError, KeyError, IndexError)):
         logger.exception(f"Unhandled application error: {type(exc).__name__}: {exc}.")
-        exc = BaseAPIException(detail="An unexpected internal server error occurred. Please try again later.")
+        exc = BaseAPIException(
+            detail="An unexpected internal server error occurred. Please try again later."
+        )
     elif not isinstance(exc, APIException):
         logger.exception(f"Unhandled server error: {type(exc).__name__}: {exc}.")
-        exc = BaseAPIException(detail="An unexpected internal server error occurred. Please try again later.")
+        exc = BaseAPIException(
+            detail="An unexpected internal server error occurred. Please try again later."
+        )
 
     response = exception_handler(exc, context)
 

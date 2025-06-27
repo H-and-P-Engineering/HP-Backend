@@ -3,15 +3,10 @@ from typing import Any, Dict
 
 from apps.authentication.domain.models import BlackListedToken, User, UserType
 from apps.authentication.domain.ports import (
-    BlackListedTokenRepositoryInterface,
-    CacheServiceAdapterInterface,
-    EmailServiceAdapterInterface,
-    JWTTokenAdapterInterface,
-    PasswordServiceAdapterInterface,
-    SocialAuthenticationAdapterInterface,
-    UserRepositoryInterface,
-    VerificationServiceAdapterInterface,
-)
+    BlackListedTokenRepositoryInterface, CacheServiceAdapterInterface,
+    EmailServiceAdapterInterface, JWTTokenAdapterInterface,
+    PasswordServiceAdapterInterface, SocialAuthenticationAdapterInterface,
+    UserRepositoryInterface, VerificationServiceAdapterInterface)
 from core.application.exceptions import BusinessRuleException
 
 

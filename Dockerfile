@@ -9,6 +9,4 @@ ENV PYTHONUNBUFFERED 1
 
 COPY . .
 
-RUN chmod +x /app/startup.sh
-
 RUN uv sync

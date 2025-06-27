@@ -64,6 +64,10 @@ The project follows a **modular monolith architecture** with clear domain bounda
 ├── 🔧 Makefile                   # Common development commands
 ├── ⚙️ manage.py                  # Django management script
 └── 📦 pyproject.toml             # Project dependencies & tools config
+├── ⚙️ startup.sh                 # startup script for dockerised service
+├── ⚙️ nginx.conf.example         # Sample nginx configuration
+├── ⚙️ Dockerfile                
+├── ⚙️ docker-compose.yml              
 ```
 
 ---

@@ -3,7 +3,8 @@ from typing import Any
 from django.db import transaction
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.decorators import (api_view, permission_classes,
+                                       throttle_classes)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,37 +12,20 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from social_django.utils import psa
 
 from apps.authentication.application.rules import (
-    LoginUserRule,
-    LogoutUserRule,
-    RegisterUserRule,
-    RequestEmailVerificationRule,
-    SocialAuthenticationRule,
-    VerifyEmailRule,
-)
+    LoginUserRule, LogoutUserRule, RegisterUserRule,
+    RequestEmailVerificationRule, SocialAuthenticationRule, VerifyEmailRule)
 from apps.authentication.infrastructure.repositories import (
-    DjangoBlackListedTokenRepository,
-    DjangoUserRepository,
-)
+    DjangoBlackListedTokenRepository, DjangoUserRepository)
 from apps.authentication.infrastructure.services import (
-    DjangoCacheServiceAdapter,
-    DjangoEmailServiceAdapter,
-    DjangoJWTTokenAdapter,
-    DjangoPasswordServiceAdapter,
-    DjangoVerificationServiceAdapter,
-    SocialAuthenticationAdapter,
-)
+    DjangoCacheServiceAdapter, DjangoEmailServiceAdapter,
+    DjangoJWTTokenAdapter, DjangoPasswordServiceAdapter,
+    DjangoVerificationServiceAdapter, SocialAuthenticationAdapter)
 from apps.authentication.presentation.serializers import (
-    EmailVerificationRequestSerializer,
-    JWTTokenSerializer,
-    UserLoginSerializer,
-    UserLogoutSerializer,
-    UserRegistrationSerializer,
-)
+    EmailVerificationRequestSerializer, JWTTokenSerializer,
+    UserLoginSerializer, UserLogoutSerializer, UserRegistrationSerializer)
 from core.presentation.responses import StandardResponse
-from core.presentation.serializers import (
-    ErrorResponseExampleSerializer,
-    SuccessResponseExampleSerializer,
-)
+from core.presentation.serializers import (ErrorResponseExampleSerializer,
+                                           SuccessResponseExampleSerializer)
 
 
 @extend_schema(

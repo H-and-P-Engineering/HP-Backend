@@ -2,19 +2,15 @@ from typing import Any, Dict
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from social_core.utils import (
-    partial_pipeline_data,
-    user_is_active,
-    user_is_authenticated,
-)
+from social_core.utils import (partial_pipeline_data, user_is_active,
+                               user_is_authenticated)
 
-from apps.authentication.domain.models import BlackListedToken as DomainBlackListedToken
+from apps.authentication.domain.models import \
+    BlackListedToken as DomainBlackListedToken
 from apps.authentication.domain.models import User as DomainUser
 from apps.authentication.domain.models import UserType
 from apps.authentication.domain.ports import (
-    BlackListedTokenRepositoryInterface,
-    UserRepositoryInterface,
-)
+    BlackListedTokenRepositoryInterface, UserRepositoryInterface)
 from apps.authentication.infrastructure.models import BlackListedToken, User
 from core.infrastructure.exceptions import BadRequestError, BaseAPIException
 from core.infrastructure.logging.base import logger

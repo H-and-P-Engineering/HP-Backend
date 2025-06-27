@@ -14,23 +14,16 @@ from django.utils.html import strip_tags
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
-from rest_framework_simplejwt.exceptions import (
-    ExpiredTokenError,
-    InvalidToken,
-    TokenError,
-)
+from rest_framework_simplejwt.exceptions import (ExpiredTokenError,
+                                                 InvalidToken, TokenError)
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from social_core.actions import do_auth
 
 from apps.authentication.domain.models import UserType
 from apps.authentication.domain.ports import (
-    CacheServiceAdapterInterface,
-    EmailServiceAdapterInterface,
-    JWTTokenAdapterInterface,
-    PasswordServiceAdapterInterface,
-    SocialAuthenticationAdapterInterface,
-    VerificationServiceAdapterInterface,
-)
+    CacheServiceAdapterInterface, EmailServiceAdapterInterface,
+    JWTTokenAdapterInterface, PasswordServiceAdapterInterface,
+    SocialAuthenticationAdapterInterface, VerificationServiceAdapterInterface)
 from core.infrastructure.exceptions import BadRequestError, BaseAPIException
 from core.infrastructure.logging.base import logger
 
