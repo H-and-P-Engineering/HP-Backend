@@ -212,3 +212,103 @@ make run
 ```
 
 --- 
+
+## 🐳 Deployment and Running with Docker Compose
+
+This section outlines how to containerize and run the Housing & Properties backend application using Docker and Docker Compose, leveraging external cloud services for the database and caching.
+
+### Prerequisites
+
+Before proceeding, ensure you have the following installed on your system:
+
+*   **Docker**: Install Docker Engine for Linux ([Official instructions](https://docs.docker.com/engine/install/))
+*   **Docker Compose**: On Linux, you may need to install Docker Compose separately. See [Install Docker Compose](https://docs.docker.com/compose/install/) for instructions.
+
+### 1. Project Structure for Docker
+
+Ensure your project root directory (HP-Backend/) contains the following files:
+
+*   `Dockerfile`
+*   `docker-compose.yml`
+*   `.env` (This file should NOT be committed to version control)
+*   `requirements.txt` (or `pyproject.toml` if you use poetry/pipenv)
+
+### 2. Configure the `.env` File
+
+The `.env` file holds critical environment variables for your application, including sensitive credentials for external services. Create a file named `.env` in the root of your `HP-Backend` directory with the following structure. **Remember to replace all placeholder values with your actual credentials and configurations.**
+
+```dotenv
+DJANGO_SECRET_KEY=your_django_secret_key
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,<your_domain_if_any>
+
+# External PostgreSQL Database (Azure PostgreSQL Example)
+# Ensure your Django settings (config/settings/base.py) are configured
+# to read this DATABASE_URL directly from the environment.
+DJANGO_DATABASE_URL=postgresql://your_database_user:your_database_password@your_azure_postgresql_host.postgres.database.azure.com:5432/your_database_name
+
+DATABASE_CONN_MAX_AGE=600
+
+# External Redis Cache (Upstash Redis Example)
+# Ensure your Django settings (config/settings/production.py) are configured
+# to read this REDIS_URL directly from the environment.
+REDIS_URL=rediss://default:your_upstash_redis_password@your_upstash_redis_host:6379
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,<your_frontend_url>
+
+# Email Settings (Gmail SMTP Example)
+DEFAULT_FROM_EMAIL=noreply@housingandproperties.com
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=your_gmail_username@gmail.com
+EMAIL_HOST_PASSWORD=your_gmail_app_password # Use an App Password for security
+
+# Authentication and Token Settings
+DJANGO_VERIFICATION_TOKEN_EXPIRY=15 # minutes
+FROM_DOMAIN=http://127.0.0.1:8000 # Your backend API URL
+
+# Environment Type (for Django settings)
+DJANGO_ENVIRONMENT=production
+
+# Cache Settings
+DJANGO_CACHE_TIMEOUT=600
+DJANGO_CACHE_BACKEND=django.core.cache.backends.redis.RedisCache # Or other Django cache backend
+
+# Logging Level
+DJANGO_LOGGING_LEVEL=INFO
+
+# Google OAuth2 Credentials (if used)
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=your_google_oauth2_client_id
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=your_google_oauth2_client_secret
+```
+
+### 3. Build and Run the Application
+
+Navigate to your `HP-Backend` root directory in the terminal and execute the following command:
+
+```bash
+docker-compose up --build
+```
+
+**Explanation of the command:**
+
+*   `docker-compose up`: Starts the services defined in your `docker-compose.yml` file.
+*   `--build`: Ensures that the Docker image for your `web` service is rebuilt (if changes were made to the `Dockerfile` or your application code) before starting the container.
+
+This command will:
+
+1.  Build the Docker image for your Django application (`hp-backend-web`).
+2.  Start the `hp-backend-web` container.
+3.  Inside the container, it will execute:
+    *   `python manage.py collectstatic --noinput`: Gathers all static files.
+    *   `python manage.py migrate`: Applies any pending database migrations.
+    *   `gunicorn config.wsgi:application --bind 0.0.0.0:8000`: Starts the Gunicorn web server, making your Django application accessible.
+
+### 4. Accessing the Application
+
+Once Docker Compose has finished starting up, your Django application should be accessible via your web browser or API client at:
+
+`http://localhost:8000`
