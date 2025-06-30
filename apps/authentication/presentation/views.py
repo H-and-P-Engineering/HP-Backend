@@ -32,7 +32,8 @@ from core.presentation.serializers import (ErrorResponseExampleSerializer,
     request=UserRegistrationSerializer,
     responses={
         201: SuccessResponseExampleSerializer,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Register a new user.",
     tags=["Authentication"],
@@ -77,7 +78,8 @@ def register_user(request: Request) -> Response:
     request=EmailVerificationRequestSerializer,
     responses={
         201: SuccessResponseExampleSerializer,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Request email verification for a registered user.",
     tags=["Authentication"],
@@ -113,7 +115,8 @@ def verify_email_request(request: Request) -> Response:
     request=None,
     responses={
         200: SuccessResponseExampleSerializer,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Verify email address.",
     tags=["Authentication"],
@@ -142,7 +145,8 @@ def verify_email(request: Request, user_uuid: str, verification_token: str) -> R
     request=UserLoginSerializer,
     responses={
         201: SuccessResponseExampleSerializer,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Login an existing user.",
     tags=["Authentication"],
@@ -181,7 +185,8 @@ def login_user(request: Request) -> Response:
     request=UserLogoutSerializer,
     responses={
         201: SuccessResponseExampleSerializer,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Logout an authenticated user.",
     tags=["Authentication"],
@@ -211,7 +216,8 @@ def logout_user(request: Request) -> Response:
     request=None,
     responses={
         301: None,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Begin social authentication.",
     tags=["Authentication"],
@@ -239,7 +245,8 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
     request=None,
     responses={
         "200-201": SuccessResponseExampleSerializer,
-        "400-400": ErrorResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer
     },
     description="Complete social authentication.",
     tags=["Authentication"],

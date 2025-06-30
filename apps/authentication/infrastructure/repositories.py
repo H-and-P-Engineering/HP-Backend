@@ -21,24 +21,28 @@ class DjangoUserRepository(UserRepositoryInterface):
         django_user = User.objects.create_user(**self._to_django_user_data(user))
         return self._to_domain_user_data(django_user)
 
-    def update(self, user):
+    def update(self, user, **kwargs):
         try:
             django_user = User.objects.get(id=user.id)
-
+            
             django_user.email = user.email
             django_user.first_name = user.first_name
             django_user.last_name = user.last_name
             django_user.user_type = user.user_type
             django_user.is_email_verified = user.is_email_verified
             django_user.is_active = user.is_active
-
+            
+            for key, value in kwargs.items():
+                if hasattr(django_user, key):
+                    setattr(django_user, key, value)
+            
             django_user.save()
             return self._to_domain_user_data(django_user)
         except Exception as e:
             logger.exception(
-                f"Unknown error during user update for '{django_user.email}': {e}"
+                f"Unknown error during user update for '{user.email}': {e}"
             )
-            raise BaseAPIException(_("User update failed. Try again later."))
+            raise BaseAPIException(_("User update failed. Try again later.")) from e
 
     def get_by_id(self, user_id) -> DomainUser | None:
         try:
@@ -127,7 +131,6 @@ class DjangoUserRepository(UserRepositoryInterface):
             updated_at=django_user.updated_at,
             last_login=django_user.last_login,
         )
-
 
 class DjangoBlackListedTokenRepository(BlackListedTokenRepositoryInterface):
     def add(self, blacklisted_token):

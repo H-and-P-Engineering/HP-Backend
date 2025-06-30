@@ -28,6 +28,12 @@ class User(AbstractUser):
         verbose_name_plural = "Users"
         indexes = [
             models.Index(fields=["email"]),
+            models.Index(fields=["user_type"]),
+            models.Index(fields=["is_email_verified"]),
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["user_type", "is_active"]),
+            models.Index(fields=["is_email_verified", "is_active"]),
         ]
 
     def __str__(self) -> str:
@@ -48,6 +54,11 @@ class BlackListedToken(models.Model):
         db_table = "auth_blacklisted_tokens"
         verbose_name = "Blacklisted Token"
         verbose_name_plural = "Blacklisted Tokens"
+        indexes = [
+            models.Index(fields=["access"]),
+            models.Index(fields=["expires_at"]),
+            models.Index(fields=["user", "expires_at"]),
+        ]
 
     def __str__(self) -> str:
         return f"Token {self.access[:20]}... for {str(self.user)} (blacklisted at {self.created_at})"

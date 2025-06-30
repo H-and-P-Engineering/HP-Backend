@@ -50,7 +50,7 @@ class RequestEmailVerificationRule:
 
     def execute(self, user: User) -> None:
         if user.is_email_verified:
-            raise BusinessRuleException("User account is already verified.")
+            raise BusinessRuleException("Email verification request failed. User account is already verified.")
 
         token = self._verification_service.generate_token()
 
@@ -89,7 +89,7 @@ class VerifyEmailRule:
 
         if not user or str(user.uuid) != str(user_uuid) or cached_token != token:
             raise BusinessRuleException(
-                "Provided user id or verification token is invalid."
+                "Email verification failed. Provided user id or verification token is invalid."
             )
 
         user.is_email_verified = True
@@ -112,20 +112,19 @@ class LoginUserRule:
         user = self._user_repository.get_by_email(email)
 
         if not user or not self._password_service.check(password, user.password_hash):
-            raise BusinessRuleException("Provided email or password is invalid.")
+            raise BusinessRuleException("Login failed. Provided email or password is invalid.")
 
         if not user.is_active:
-            raise BusinessRuleException("Requested user account is deactivated.")
+            raise BusinessRuleException("Login failed. Requested user account is deactivated.")
 
         if not user.is_email_verified:
             raise BusinessRuleException(
-                "Requested user email is not verified. Please verify your email."
+                "Login failed. Requested user email is not verified. Please verify your email."
             )
 
-        user.last_login = datetime.now(tz=UTC)
-
-        updated_user = self._user_repository.update(user)
-        return updated_user
+        self._user_repository.update(user, last_login=datetime.now(tz=UTC)) # :TODO: run as background task
+        
+        return user
 
 
 class LogoutUserRule:

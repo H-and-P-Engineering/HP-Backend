@@ -12,7 +12,7 @@ class UserRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def update(self, user: User) -> User:
+    def update(self, user: User, **kwargs) -> User:
         pass
 
     @abstractmethod
