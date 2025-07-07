@@ -9,7 +9,7 @@ from apps.users.domain.models import User as DomainUser
 class UserRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
-    user_type = serializers.ChoiceField(required=True, choices=UserType.choices())
+    user_type = serializers.ChoiceField(allow_blank=True, choices=UserType.choices(), default=UserType.CLIENT)
     first_name = serializers.CharField(required=True, max_length=30)
     last_name = serializers.CharField(required=True, max_length=30)
 
