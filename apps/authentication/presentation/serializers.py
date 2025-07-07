@@ -2,8 +2,8 @@ from typing import Any, Dict
 
 from rest_framework import serializers
 
-from apps.authentication.domain.models import User as DomainUser
-from apps.authentication.domain.models import UserType
+from apps.users.domain.enums import UserType
+from apps.users.domain.models import User as DomainUser
 
 
 class UserRegistrationSerializer(serializers.Serializer):

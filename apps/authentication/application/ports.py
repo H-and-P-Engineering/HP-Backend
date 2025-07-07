@@ -1,31 +1,9 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 from uuid import UUID
 
-from apps.authentication.domain.models import BlackListedToken, User
-
-
-class UserRepositoryInterface(ABC):
-    @abstractmethod
-    def create(self, user: User) -> User:
-        pass
-
-    @abstractmethod
-    def update(self, user: User, **kwargs) -> User:
-        pass
-
-    @abstractmethod
-    def get_by_id(self, id: int) -> User:
-        pass
-
-    @abstractmethod
-    def get_by_email(self, email: str) -> User:
-        pass
-
-    @abstractmethod
-    def get_or_create_social(self, request: Any) -> User:
-        pass
+from apps.authentication.domain.models import BlackListedToken
 
 
 class BlackListedTokenRepositoryInterface(ABC):

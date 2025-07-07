@@ -1,5 +1,3 @@
-from pickle import TRUE
-
 from config.settings.base import *
 
 DEBUG = False

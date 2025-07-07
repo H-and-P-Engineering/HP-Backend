@@ -3,8 +3,7 @@ from typing import Any
 from django.db import transaction
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
-from rest_framework.decorators import (api_view, permission_classes,
-                                       throttle_classes)
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,20 +11,37 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from social_django.utils import psa
 
 from apps.authentication.application.rules import (
-    LoginUserRule, LogoutUserRule, RegisterUserRule,
-    RequestEmailVerificationRule, SocialAuthenticationRule, VerifyEmailRule)
+    LoginUserRule,
+    LogoutUserRule,
+    RegisterUserRule,
+    RequestEmailVerificationRule,
+    SocialAuthenticationRule,
+    VerifyEmailRule,
+)
 from apps.authentication.infrastructure.repositories import (
-    DjangoBlackListedTokenRepository, DjangoUserRepository)
+    DjangoBlackListedTokenRepository,
+)
 from apps.authentication.infrastructure.services import (
-    DjangoCacheServiceAdapter, DjangoEmailServiceAdapter,
-    DjangoJWTTokenAdapter, DjangoPasswordServiceAdapter,
-    DjangoVerificationServiceAdapter, SocialAuthenticationAdapter)
+    DjangoCacheServiceAdapter,
+    DjangoEmailServiceAdapter,
+    DjangoJWTTokenAdapter,
+    DjangoPasswordServiceAdapter,
+    DjangoVerificationServiceAdapter,
+    SocialAuthenticationAdapter,
+)
 from apps.authentication.presentation.serializers import (
-    EmailVerificationRequestSerializer, JWTTokenSerializer,
-    UserLoginSerializer, UserLogoutSerializer, UserRegistrationSerializer)
+    EmailVerificationRequestSerializer,
+    JWTTokenSerializer,
+    UserLoginSerializer,
+    UserLogoutSerializer,
+    UserRegistrationSerializer,
+)
+from apps.users.infrastructure.repositories import DjangoUserRepository
 from core.presentation.responses import StandardResponse
-from core.presentation.serializers import (ErrorResponseExampleSerializer,
-                                           SuccessResponseExampleSerializer)
+from core.presentation.serializers import (
+    ErrorResponseExampleSerializer,
+    SuccessResponseExampleSerializer,
+)
 
 
 @extend_schema(
@@ -33,7 +49,7 @@ from core.presentation.serializers import (ErrorResponseExampleSerializer,
     responses={
         201: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Register a new user.",
     tags=["Authentication"],
@@ -79,7 +95,7 @@ def register_user(request: Request) -> Response:
     responses={
         201: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Request email verification for a registered user.",
     tags=["Authentication"],
@@ -116,7 +132,7 @@ def verify_email_request(request: Request) -> Response:
     responses={
         200: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Verify email address.",
     tags=["Authentication"],
@@ -146,7 +162,7 @@ def verify_email(request: Request, user_uuid: str, verification_token: str) -> R
     responses={
         201: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Login an existing user.",
     tags=["Authentication"],
@@ -186,7 +202,7 @@ def login_user(request: Request) -> Response:
     responses={
         201: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Logout an authenticated user.",
     tags=["Authentication"],
@@ -217,7 +233,7 @@ def logout_user(request: Request) -> Response:
     responses={
         301: None,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Begin social authentication.",
     tags=["Authentication"],
@@ -246,7 +262,7 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
     responses={
         "200-201": SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,
-        500: ErrorResponseExampleSerializer
+        500: ErrorResponseExampleSerializer,
     },
     description="Complete social authentication.",
     tags=["Authentication"],

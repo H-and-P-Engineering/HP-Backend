@@ -4,17 +4,26 @@ from typing import Any, Dict, List
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework import status
-from rest_framework.exceptions import (APIException, AuthenticationFailed,
-                                       MethodNotAllowed, NotAuthenticated,
-                                       NotFound, ParseError, Throttled,
-                                       ValidationError)
+from rest_framework.exceptions import (
+    APIException,
+    AuthenticationFailed,
+    MethodNotAllowed,
+    NotAuthenticated,
+    NotFound,
+    ParseError,
+    Throttled,
+    ValidationError,
+)
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from core.application.exceptions import BusinessRuleException
-from core.infrastructure.exceptions import (BadRequestError, BaseAPIException,
-                                            ConflictError,
-                                            UnprocessableEntityError)
+from core.infrastructure.exceptions import (
+    BadRequestError,
+    BaseAPIException,
+    ConflictError,
+    UnprocessableEntityError,
+)
 from core.infrastructure.logging.base import logger
 
 

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "social_django",
     "drf_social_oauth2",
     "apps.authentication.apps.AuthenticationConfig",
+    "apps.users.apps.UsersConfig",
 ]
 
 MIDDLEWARE = [
@@ -137,7 +138,7 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {},
 }
 
-AUTH_USER_MODEL = "authentication.User"
+AUTH_USER_MODEL = "users.User"
 
 DEFAULT_FROM_EMAIL = env.str(
     "DEFAULT_FROM_EMAIL", default="noreply@housingandproperties.com"
@@ -186,7 +187,7 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 
-SOCIAL_AUTH_USER_MODEL = "authentication.User"
+SOCIAL_AUTH_USER_MODEL = "users.User"
 SOCIAL_AUTH_JSONFIELD_ENABLED = True
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 SOCIAL_AUTH_PIPELINE = [

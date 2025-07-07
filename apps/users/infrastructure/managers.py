@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.utils.translation import gettext_lazy as _
 
 if TYPE_CHECKING:
-    from apps.authentication.infrastructure.models import User
+    from apps.users.infrastructure.models import User
 
 from core.infrastructure.exceptions import BaseAPIException, ConflictError
 from core.infrastructure.logging.base import logger
@@ -17,7 +17,7 @@ class UserManager(BaseUserManager):
 
         user = self.model(email=email, **extra)
 
-        if extra.get("is_superuser", False) == True:
+        if extra.get("is_superuser", False):
             user.set_password(password)
         else:
             user.password = password
@@ -34,7 +34,9 @@ class UserManager(BaseUserManager):
             logger.exception(
                 f"Integrity error during user creation for '{email}': {e}."
             )
-            raise ConflictError("User creation failed. Conflicting resource exists.") from e
+            raise ConflictError(
+                "User creation failed. Conflicting resource exists."
+            ) from e
         except Exception as e:
             logger.exception(f"Unknown error during user creation for '{email}': {e}")
             raise BaseAPIException(_("User creation failed. Try again later.")) from e

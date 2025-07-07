@@ -1,3 +1,3 @@
-from apps.authentication.infrastructure.models import User
+from apps.authentication.infrastructure.models import BlackListedToken
 
-__all__ = ["User"]
+__all__ = ["BlackListedToken"]

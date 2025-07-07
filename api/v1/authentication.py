@@ -2,8 +2,14 @@ from django.urls import path
 from social_django.urls import extra
 
 from apps.authentication.presentation.views import (
-    begin_social_authentication, complete_social_authentication, login_user,
-    logout_user, register_user, verify_email, verify_email_request)
+    begin_social_authentication,
+    complete_social_authentication,
+    login_user,
+    logout_user,
+    register_user,
+    verify_email,
+    verify_email_request,
+)
 
 app_name = "authentication"
 

@@ -1,12 +1,18 @@
 from datetime import UTC, datetime
-from typing import Any, Dict
+from typing import Any
 
-from apps.authentication.domain.models import BlackListedToken, User, UserType
-from apps.authentication.domain.ports import (
-    BlackListedTokenRepositoryInterface, CacheServiceAdapterInterface,
-    EmailServiceAdapterInterface, JWTTokenAdapterInterface,
-    PasswordServiceAdapterInterface, SocialAuthenticationAdapterInterface,
-    UserRepositoryInterface, VerificationServiceAdapterInterface)
+from apps.authentication.application.ports import (
+    BlackListedTokenRepositoryInterface,
+    CacheServiceAdapterInterface,
+    EmailServiceAdapterInterface,
+    JWTTokenAdapterInterface,
+    PasswordServiceAdapterInterface,
+    SocialAuthenticationAdapterInterface,
+    VerificationServiceAdapterInterface,
+)
+from apps.authentication.domain.models import BlackListedToken
+from apps.users.application.ports import UserRepositoryInterface
+from apps.users.domain.models import User, UserType
 from core.application.exceptions import BusinessRuleException
 
 
@@ -50,7 +56,9 @@ class RequestEmailVerificationRule:
 
     def execute(self, user: User) -> None:
         if user.is_email_verified:
-            raise BusinessRuleException("Email verification request failed. User account is already verified.")
+            raise BusinessRuleException(
+                "Email verification request failed. User account is already verified."
+            )
 
         token = self._verification_service.generate_token()
 
@@ -112,18 +120,24 @@ class LoginUserRule:
         user = self._user_repository.get_by_email(email)
 
         if not user or not self._password_service.check(password, user.password_hash):
-            raise BusinessRuleException("Login failed. Provided email or password is invalid.")
+            raise BusinessRuleException(
+                "Login failed. Provided email or password is invalid."
+            )
 
         if not user.is_active:
-            raise BusinessRuleException("Login failed. Requested user account is deactivated.")
+            raise BusinessRuleException(
+                "Login failed. Requested user account is deactivated."
+            )
 
         if not user.is_email_verified:
             raise BusinessRuleException(
                 "Login failed. Requested user email is not verified. Please verify your email."
             )
 
-        self._user_repository.update(user, last_login=datetime.now(tz=UTC)) # :TODO: run as background task
-        
+        self._user_repository.update(
+            user, last_login=datetime.now(tz=UTC)
+        )  # :TODO: run as background task
+
         return user
 
 
@@ -157,5 +171,9 @@ class SocialAuthenticationRule:
     def begin_authentication(self, request: Any, user_type: str) -> Any:
         return self._social_authentication_service.begin(request, user_type=user_type)
 
-    def complete_authentication(self, request: Any) -> Dict[str, str]:
-        return self._user_repository.get_or_create_social(request)
+    def complete_authentication(self, request: Any) -> Any:
+        return (
+            self._user_repository.get_or_create_social(request)
+            if self._user_repository
+            else None
+        )

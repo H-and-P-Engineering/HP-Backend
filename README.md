@@ -20,13 +20,13 @@ The project follows a **modular monolith architecture** with clear domain bounda
 
 | Category | Technology | Version | Purpose |
 |----------|------------|---------|---------|
-| 🔧 **Framework** | Django | Latest | Core web framework |
-| 🌐 **API** | Django REST Framework | Latest | RESTful API development |
-| 🗄️ **Database** | PostgreSQL | Latest | Primary data store |
-| 🔐 **Authentication** | JWT (simplejwt) | Latest | Stateless authentication |
-| 📚 **Documentation** | drf-spectacular | Latest | Swagger/ReDoc integration |
-| 📊 **Logging** | Loguru | Latest | Structured logging |
-| 🧪 **Testing** | Pytest | Latest | Test framework |
+| 🔧 **Framework** | Django | 5.2.3+ | Core web framework |
+| 🌐 **API** | Django REST Framework | 3.16.0+ | RESTful API development |
+| 🗄️ **Database** | PostgreSQL/SQLite | Latest | Primary data store |
+| 🔐 **Authentication** | JWT (simplejwt) | 5.5.0+ | Stateless authentication |
+| 📚 **Documentation** | drf-spectacular | 0.28.0+ | Swagger/ReDoc integration |
+| 📊 **Logging** | Loguru | 0.7.3+ | Structured logging |
+| 🧪 **Testing** | Pytest | 8.4.0+ | Test framework |
 | 📦 **Package Management** | uv | Latest | Fast dependency management |
 | ✨ **Code Quality** | Ruff + pre-commit | Latest | Linting & formatting |
 
@@ -39,35 +39,73 @@ The project follows a **modular monolith architecture** with clear domain bounda
 ├── 📱 apps/                      # Domain-specific applications
 │   └── 🔐 authentication/        # Authentication & user management
 │       ├── 🌐 application/       # Application-specific business rules (use cases)
-│       ├── 🗄️ domain/            # Core domain models and interfaces (ports)
+│       │   ├── ports.py          # Interfaces (ports) for external concerns
+│       │   └── rules.py          # Business logic and orchestration
+│       ├── 🗄️ domain/            # Core domain models (dataclasses)
 │       ├── 🛠️ infrastructure/    # Concrete implementations of domain ports (adapters), ORM models, services
+│       │   ├── middleware.py     # Token blacklisting middleware
+│       │   ├── models.py         # BlacklistedToken model
+│       │   ├── pipelines.py      # Social auth pipeline
+│       │   ├── repositories.py   # Data access layer
+│       │   └── services.py       # External service adapters
 │       ├── 📋 presentation/      # API views and serializers
+│       │   ├── serializers.py    # Request/response serializers
+│       │   └── views.py          # API endpoints
 │       └── ⚡ apps.py             # Authentication AppConfig
+├── 👤 users/                     # User domain management
+│   ├── 🌐 application/           # User application layer
+│   │   └── ports.py              # User repository interfaces
+│   ├── 🗄️ domain/                # User domain models and enums
+│   │   ├── enums.py              # UserType enum
+│   │   └── models.py             # User domain model
+│   ├── 🛠️ infrastructure/        # User infrastructure layer
+│   │   ├── managers.py           # Custom UserManager
+│   │   ├── models.py             # Django User model
+│   │   └── repositories.py       # User repository implementation
+│   ├── 📋 models/                # Django model exports
+│   └── ⚡ apps.py                 # Users AppConfig
 ├── 🌐 api/                       # API versioning and routing
 │   └── 📋 v1/                    # Version 1 API
+│       ├── __init__.py           # API v1 URL patterns
 │       └── authentication.py     # Authentication API endpoints
 ├── ⚙️ config/                    # Django settings and configuration
 │   ├── 🔧 settings/              # Environment-specific settings
+│   │   ├── __init__.py           # Settings package
 │   │   ├── 📋 base.py            # Common settings
 │   │   ├── 🔨 development.py     # Development configuration
 │   │   ├── 🚀 production.py      # Production configuration
 │   │   └── 🧪 test.py            # Testing configuration
 │   ├── 🔗 urls.py                # Root URL configuration
-│   └── 🌐 wsgi.py                # WSGI configuration
+│   ├── 🌐 wsgi.py                # WSGI configuration
+│   └── ⚙️ asgi.py                # ASGI configuration
 ├── 🛠️ core/                      # Shared utilities and base classes
-│   ├── 🌐 application/           # Shared application-level components (e.g., base exceptions)
-│   ├── 🗄️ domain/                # Shared domain components (currently empty but ready for expansion)
-│   ├── 🛠️ infrastructure/        # Shared infrastructure components (e.g., exceptions, logging, templates)
-│   ├── 📋 presentation/          # Shared presentation components (e.g., responses, serializers)
+│   ├── 🌐 application/           # Shared application-level components
+│   │   └── exceptions.py         # Business rule exceptions
+│   ├── 🗄️ domain/                # Shared domain components (ready for expansion)
+│   ├── 🛠️ infrastructure/        # Shared infrastructure components
+│   │   ├── exceptions/           # Exception handling framework
+│   │   │   ├── __init__.py       # Exception exports
+│   │   │   ├── base.py           # Base exception classes
+│   │   │   └── handler.py        # Custom exception handler
+│   │   ├── logging/              # Logging configuration
+│   │   │   └── base.py           # Loguru integration
+│   │   └── templates/            # Email templates
+│   │       └── verify_email.html # Email verification template
+│   └── 📋 presentation/          # Shared presentation components
+│       ├── responses.py          # Standard API responses
+│       └── serializers.py        # Common serializers
+├── 📝 docs/                      # Documentation
+│   └── authentication.md         # Authentication system documentation
 ├── 📝 logs/                      # Application logs
 ├── 📄 .env.template              # Environment variables template
 ├── 🔧 Makefile                   # Common development commands
 ├── ⚙️ manage.py                  # Django management script
-└── 📦 pyproject.toml             # Project dependencies & tools config
-├── ⚙️ startup.sh                 # startup script for dockerised service
+├── 📦 pyproject.toml             # Project dependencies & tools config
+├── ⚙️ startup.sh                 # Startup script for dockerised service
 ├── ⚙️ nginx.conf.example         # Sample nginx configuration
-├── ⚙️ Dockerfile                
-├── ⚙️ docker-compose.yml              
+├── ⚙️ Dockerfile                 # Docker container configuration
+├── ⚙️ docker-compose.yml         # Docker Compose configuration
+└── 📦 uv.lock                    # uv dependency lock file
 ```
 
 ---
@@ -111,27 +149,52 @@ The project follows a **modular monolith architecture** with clear domain bounda
   - 👤 **CLIENT** - property seekers and buyers
   - 🏢 **AGENT** - licensed real estate professionals
   - 🛠️ **VENDOR** - service providers and contractors
+  - 🔧 **SERVICE_PROVIDER** - additional service providers
   - 👑 **ADMIN** - platform administrators
 - ✅ **Email verification** tracking (`is_email_verified` field).
 - 🔒 **Security-first design** with comprehensive password validation.
 
-*Note: User profiles (AgentProfile, VendorProfile, ClientProfile) are conceptually described in the documentation but are not currently implemented as separate Django models or domain models in the provided codebase. This is a future enhancement.*
-
 #### 🔧 **Custom Managers**
 - 🧠 **Business logic encapsulation** in `UserManager` methods (e.g., `create_user`, `create_superuser`).
+- 🛡️ **Admin user protection** - prevents regular users from creating admin accounts.
 
 #### 🔗 **Social Authentication**
 - 🔵 **Google OAuth2** integration using `drf-social-oauth2` and `python-social-auth`.
 - 🏗️ **Extensible architecture** designed for adding additional social providers.
-- 🔄 **Seamless user creation** and profile setup for new social users via `get_or_create_social`.
+- 🔄 **Seamless user creation** and profile setup for new social users via custom pipeline.
 - 🛡️ **Security-compliant implementation** for OAuth2 flows.
 
 #### 🎫 **Token Management System**
 - Uses `djangorestframework-simplejwt` for **JSON Web Tokens (JWT)** for stateless authentication.
-- **Access Tokens**: Short-lived, for API requests.
-- **Refresh Tokens**: Long-lived, for obtaining new access tokens.
+- **Access Tokens**: Short-lived (30 minutes), for API requests.
+- **Refresh Tokens**: Long-lived (24 hours), for obtaining new access tokens.
 - **Token Blacklisting**: Implemented via `BlacklistedToken` model and `TokenBlacklistMiddleware` to invalidate tokens on logout.
 - **Configurable Lifetimes**: Token validity periods are configurable in `settings.py`.
+
+#### 📧 **Email Verification System**
+- 🔐 **Secure token-based verification** using cryptographically secure tokens.
+- 💾 **Cache-based storage** for verification tokens with automatic expiration.
+- 📬 **Template-based emails** with customizable verification links.
+- ⏰ **Configurable expiration** (default 15 minutes) via `DJANGO_VERIFICATION_TOKEN_EXPIRY`.
+
+---
+
+### 🌐 **API Endpoints**
+
+#### **Authentication Endpoints**
+- `POST /api/v1/authentication/register/` - User registration with email verification
+- `POST /api/v1/authentication/login/` - User login with JWT token generation
+- `POST /api/v1/authentication/logout/` - User logout with token blacklisting
+- `POST /api/v1/authentication/verify-email/request/` - Request new verification email
+- `POST /api/v1/authentication/verify-email/{user_uuid}/{token}/` - Verify email address
+- `GET /api/v1/authentication/social/begin/{backend}/` - Initiate social authentication
+- `GET /api/v1/authentication/social/complete/{backend}/` - Complete social authentication
+
+#### **Security Features**
+- 🚫 **Rate limiting** - Anonymous (5/min), Authenticated (10/min)
+- 🔒 **Password validation** - Comprehensive security requirements
+- 🛡️ **JWT token security** - Blacklisting, rotation, and expiration
+- 📧 **Email verification enforcement** - Required for login
 
 ---
 
