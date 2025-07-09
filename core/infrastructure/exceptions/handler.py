@@ -119,15 +119,15 @@ def normalize_error_detail(detail: Any) -> str | List[str] | Dict[str, Any]:
         return detail
 
     if isinstance(detail, dict):
-        normalized = {}
+        normalized = ""
         for key, value in detail.items():
             if hasattr(value, "__iter__") and not isinstance(value, str):
                 if len(value) == 1 and hasattr(value[0], "message"):
-                    normalized[key] = str(value[0].message)
+                    normalized = str(value[0].message)
                 else:
                     values_list = list(value)
-                    normalized[key] = (
-                        str(values_list[0])
+                    normalized = (
+                        str(values_list[0]).replace("This field", key.title())
                         if len(values_list) == 1
                         else [
                             str(v.message) if hasattr(v, "message") else str(v)

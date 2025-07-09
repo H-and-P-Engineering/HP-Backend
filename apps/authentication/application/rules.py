@@ -2,17 +2,21 @@ from datetime import UTC, datetime
 from typing import Any
 
 from apps.authentication.application.ports import (
-    BlackListedTokenRepositoryInterface,
     CacheServiceAdapterInterface,
-    EmailServiceAdapterInterface,
+    EventPublisherInterface,
     JWTTokenAdapterInterface,
     PasswordServiceAdapterInterface,
     SocialAuthenticationAdapterInterface,
-    VerificationServiceAdapterInterface,
+)
+from apps.authentication.domain.events import (
+    UserEmailVerifiedEvent,
+    UserLogoutEvent,
+    UserUpdateEvent,
+    UserVerificationEmailEvent,
 )
 from apps.authentication.domain.models import BlackListedToken
 from apps.users.application.ports import UserRepositoryInterface
-from apps.users.domain.models import User, UserType
+from apps.users.domain.models import User as DomainUser
 from core.application.exceptions import BusinessRuleException
 
 
@@ -21,90 +25,118 @@ class RegisterUserRule:
         self,
         user_repository: UserRepositoryInterface,
         password_service: PasswordServiceAdapterInterface,
+        event_publisher: EventPublisherInterface,
     ) -> None:
         self._user_repository = user_repository
         self._password_service = password_service
+        self._event_publisher = event_publisher
 
     def execute(
-        self, email: str, password: str, first_name: str, last_name: str, user_type: str
-    ) -> User:
-        self._password_service.validate(password)
+        self, email: str, password: str, first_name: str, last_name: str
+    ) -> DomainUser:
         password_hash = self._password_service.hash(password)
 
-        user = User(
+        user = DomainUser(
             email=email,
             password_hash=password_hash,
             first_name=first_name,
             last_name=last_name,
-            user_type=UserType(user_type.upper()),
         )
 
         created_user = self._user_repository.create(user)
+
+        self._event_publisher.publish(UserVerificationEmailEvent(created_user.id))
+
         return created_user
+
+
+class UpdateUserTypeRule:
+    def __init__(
+        self,
+        user_repository: UserRepositoryInterface,
+        event_publisher: EventPublisherInterface,
+    ) -> None:
+        self._user_repository = user_repository
+        self._event_publisher = event_publisher
+
+    def execute(self, email: str, user_type: str) -> None:
+        user = self._user_repository.get_by_email(email)
+        if not user:
+            raise BusinessRuleException(
+                "User type update failed. Provided email is invalid."
+            )
+
+        self._event_publisher.publish(
+            UserUpdateEvent(update_fields={"user_type": user_type}, user_id=user.id)
+        )
 
 
 class RequestEmailVerificationRule:
     def __init__(
         self,
-        verification_service: VerificationServiceAdapterInterface,
         cache_service: CacheServiceAdapterInterface,
-        email_service: EmailServiceAdapterInterface,
+        event_publisher: EventPublisherInterface,
+        user_repository: UserRepositoryInterface | None = None,
     ) -> None:
-        self._verification_service = verification_service
         self._cache_service = cache_service
-        self._email_service = email_service
+        self._user_repository = user_repository
+        self._event_publisher = event_publisher
 
-    def execute(self, user: User) -> None:
-        if user.is_email_verified:
+    def execute(self, email: str, user: DomainUser | None = None) -> None:
+        if self._cache_service.get(f"{email}_verified"):
             raise BusinessRuleException(
-                "Email verification request failed. User account is already verified."
+                "Email verification request failed. User email is already verified."
             )
 
-        token = self._verification_service.generate_token()
+        user = user or self._user_repository.get_by_email(email)
 
-        cache_key = f"email_verify_{str(user.uuid)}"
-        self._cache_service.set(cache_key, (user.id, token))
+        if not user:
+            raise BusinessRuleException(
+                "Email verification request failed. Provided email is invalid."
+            )
 
-        link = self._verification_service.generate_email_verification_link(
-            user.uuid, token
-        )
+        if user.is_email_verified:
+            self._event_publisher.publish(UserEmailVerifiedEvent(user.id))
+            raise BusinessRuleException(
+                "Email verification request failed. User email is already verified."
+            )
 
-        self._email_service.send_verification_email(user.email, verification_link=link)
+        self._event_publisher.publish(UserVerificationEmailEvent(user.id))
 
 
 class VerifyEmailRule:
     def __init__(
         self,
-        user_repository: UserRepositoryInterface,
-        email_service: EmailServiceAdapterInterface,
-        verification_service: VerificationServiceAdapterInterface,
         cache_service: CacheServiceAdapterInterface,
+        user_repository: UserRepositoryInterface,
+        event_publisher: EventPublisherInterface,
     ) -> None:
-        self._user_repository = user_repository
-        self._email_service = email_service
-        self._verification_service = verification_service
         self._cache_service = cache_service
+        self._user_repository = user_repository
+        self._event_publisher = event_publisher
 
-    def execute(self, user_uuid: str, token: str) -> bool:
-        cache_key = f"email_verify_{user_uuid}"
-
-        cached_id, cached_token = self._cache_service.get(cache_key)
+    def execute(self, user_uuid: str, token: str) -> None:
+        cached_data = self._cache_service.get(f"email_verify_{user_uuid}")
+        if cached_data:
+            cached_id, cached_token = cached_data
+        else:
+            raise BusinessRuleException(
+                "Email verification failed. Verification session is invalid or expired."
+            )
 
         user = self._user_repository.get_by_id(cached_id)
 
-        if user.is_email_verified:
-            return True
+        if user and user.is_email_verified:
+            raise BusinessRuleException(
+                "Email verification failed. User email is already verified."
+            )
 
         if not user or str(user.uuid) != str(user_uuid) or cached_token != token:
             raise BusinessRuleException(
                 "Email verification failed. Provided user id or verification token is invalid."
             )
 
-        user.is_email_verified = True
-        self._user_repository.update(user)
-        self._cache_service.delete(cache_key)
-
-        return True
+        self._event_publisher.publish(UserEmailVerifiedEvent(user.id))
 
 
 class LoginUserRule:
@@ -112,11 +144,13 @@ class LoginUserRule:
         self,
         user_repository: UserRepositoryInterface,
         password_service: PasswordServiceAdapterInterface,
+        event_publisher: EventPublisherInterface,
     ) -> None:
         self._user_repository = user_repository
         self._password_service = password_service
+        self._event_publisher = event_publisher
 
-    def execute(self, email: str, password: str) -> User:
+    def execute(self, email: str, password: str) -> DomainUser:
         user = self._user_repository.get_by_email(email)
 
         if not user or not self._password_service.check(password, user.password_hash):
@@ -134,9 +168,11 @@ class LoginUserRule:
                 "Login failed. Requested user email is not verified. Please verify your email."
             )
 
-        self._user_repository.update(
-            user, last_login=datetime.now(tz=UTC)
-        )  # :TODO: run as background task
+        self._event_publisher.publish(
+            UserUpdateEvent(
+                update_fields={"last_login": datetime.now(tz=UTC)}, user_id=user.id
+            )
+        )
 
         return user
 
@@ -144,11 +180,11 @@ class LoginUserRule:
 class LogoutUserRule:
     def __init__(
         self,
-        blacklisted_token_repository: BlackListedTokenRepositoryInterface,
         jwt_token_service: JWTTokenAdapterInterface,
+        event_publisher: EventPublisherInterface,
     ) -> None:
-        self._blacklisted_token_repository = blacklisted_token_repository
         self._jwt_token_service = jwt_token_service
+        self._event_publisher = event_publisher
 
     def execute(self, user_id: int, access_token: str) -> None:
         token_expiry = self._jwt_token_service.check_access_token_expiry(access_token)
@@ -156,24 +192,23 @@ class LogoutUserRule:
         token = BlackListedToken(
             access=access_token, user_id=user_id, expires_at=token_expiry
         )
-        self._blacklisted_token_repository.add(token)
+
+        self._event_publisher.publish(UserLogoutEvent(token=token, user_id=user_id))
 
 
 class SocialAuthenticationRule:
     def __init__(
         self,
         social_authentication_service: SocialAuthenticationAdapterInterface,
-        user_repository: UserRepositoryInterface | None = None,
+        event_publisher: EventPublisherInterface,
     ) -> None:
         self._social_authentication_service = social_authentication_service
-        self._user_repository = user_repository
+        self._event_publisher = event_publisher
 
-    def begin_authentication(self, request: Any, user_type: str) -> Any:
-        return self._social_authentication_service.begin(request, user_type=user_type)
+    def begin_authentication(self, request: Any) -> Any:
+        return self._social_authentication_service.begin(request)
 
-    def complete_authentication(self, request: Any) -> Any:
-        return (
-            self._user_repository.get_or_create_social(request)
-            if self._user_repository
-            else None
-        )
+    def complete_authentication(self, request: Any) -> DomainUser:
+        user_dict = self._social_authentication_service.get_or_create_social(request)
+
+        return user_dict

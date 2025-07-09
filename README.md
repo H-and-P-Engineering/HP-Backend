@@ -1,200 +1,215 @@
-# 🏠 Housing & Properties Backend Documentation
+# 🏠 Housing & Properties Backend API
 
 ## 🎯 Overview
 
-This is the **backend API** for the **Housing & Properties marketplace platform**. Built with **Django 5** and **Django REST Framework**, it provides a **robust, scalable API** for managing various functionalities, starting with comprehensive user authentication.
+**Housing & Properties** is a comprehensive marketplace platform backend built with **Django 5** and **Django REST Framework**. The system implements **Clean Architecture** principles with a modular monolith design that's ready to evolve into microservices as needed.
 
-### ⚡ **Core Philosophy**
-- 🏗️ **Modular monolith** architecture with clear domain boundaries
-- 🔄 **Evolution-ready** design for future microservices transition
-- 🛡️ **Security-first** approach with enterprise-grade authentication
-- 📈 **Performance-optimized** for high-scale operations
+### ⚡ **Core Features**
+- 🔐 **Advanced Authentication System** - JWT-based with social auth, email verification, and token blacklisting
+- 👤 **Multi-Type User Management** - CLIENT, AGENT, VENDOR, SERVICE_PROVIDER, ADMIN roles
+- 🌐 **RESTful API Design** - Consistent, scalable API endpoints with comprehensive documentation
+- 🛡️ **Security-First Approach** - Rate limiting, password validation, CSRF protection
+- 📧 **Email Verification System** - Secure token-based email verification with templates
+- 🔗 **Social Authentication** - Google OAuth2 integration with extensible architecture
 
 ---
 
 ## 🏗️ Architecture
 
-The project follows a **modular monolith architecture** with clear domain boundaries, designed to evolve into **microservices** as needed. It strictly adheres to **Clean Architecture** principles.
+The project follows **Clean Architecture** principles with clear separation of concerns:
 
-### 🛠️ **Key Technologies**
+```
+🏠 Domain Layer (Business Entities)
+    ↑
+🌐 Application Layer (Use Cases/Business Rules)
+    ↑
+🛠️ Infrastructure Layer (Data Access, External Services)
+    ↑
+📋 Presentation Layer (API Views, Serializers)
+```
+
+### 🎯 **Architectural Principles**
+- **Domain-Driven Design** with pure business entities
+- **Repository Pattern** for data access abstraction
+- **Event-Driven Architecture** for loose coupling
+- **Interface Segregation** for testability
+- **Dependency Inversion** through ports and adapters
+
+---
+
+## 🛠️ Technology Stack
 
 | Category | Technology | Version | Purpose |
 |----------|------------|---------|---------|
 | 🔧 **Framework** | Django | 5.2.3+ | Core web framework |
 | 🌐 **API** | Django REST Framework | 3.16.0+ | RESTful API development |
 | 🗄️ **Database** | PostgreSQL/SQLite | Latest | Primary data store |
-| 🔐 **Authentication** | JWT (simplejwt) | 5.5.0+ | Stateless authentication |
-| 📚 **Documentation** | drf-spectacular | 0.28.0+ | Swagger/ReDoc integration |
+| 🔐 **Authentication** | JWT (SimpleJWT) | 5.5.0+ | Stateless authentication |
+| 📚 **Documentation** | drf-spectacular | 0.28.0+ | OpenAPI/Swagger docs |
 | 📊 **Logging** | Loguru | 0.7.3+ | Structured logging |
 | 🧪 **Testing** | Pytest | 8.4.0+ | Test framework |
-| 📦 **Package Management** | uv | Latest | Fast dependency management |
+| 📦 **Package Manager** | uv | Latest | Ultra-fast dependency management |
 | ✨ **Code Quality** | Ruff + pre-commit | Latest | Linting & formatting |
+| 🔗 **Social Auth** | drf-social-oauth2 | Latest | OAuth2 integration |
+| ⚡ **Task Queue** | Celery | 5.4.0+ | Async task processing |
+| 💾 **Caching** | Redis | Latest | Cache and session storage |
 
 ---
 
 ## 📁 Project Structure
 
 ```ini
-🏠 housing_&_properties/
-├── 📱 apps/                      # Domain-specific applications
-│   └── 🔐 authentication/        # Authentication & user management
-│       ├── 🌐 application/       # Application-specific business rules (use cases)
-│       │   ├── ports.py          # Interfaces (ports) for external concerns
-│       │   └── rules.py          # Business logic and orchestration
-│       ├── 🗄️ domain/            # Core domain models (dataclasses)
-│       ├── 🛠️ infrastructure/    # Concrete implementations of domain ports (adapters), ORM models, services
-│       │   ├── middleware.py     # Token blacklisting middleware
-│       │   ├── models.py         # BlacklistedToken model
-│       │   ├── pipelines.py      # Social auth pipeline
-│       │   ├── repositories.py   # Data access layer
-│       │   └── services.py       # External service adapters
-│       ├── 📋 presentation/      # API views and serializers
-│       │   ├── serializers.py    # Request/response serializers
-│       │   └── views.py          # API endpoints
-│       └── ⚡ apps.py             # Authentication AppConfig
-├── 👤 users/                     # User domain management
-│   ├── 🌐 application/           # User application layer
-│   │   └── ports.py              # User repository interfaces
-│   ├── 🗄️ domain/                # User domain models and enums
-│   │   ├── enums.py              # UserType enum
-│   │   └── models.py             # User domain model
-│   ├── 🛠️ infrastructure/        # User infrastructure layer
-│   │   ├── managers.py           # Custom UserManager
-│   │   ├── models.py             # Django User model
-│   │   └── repositories.py       # User repository implementation
-│   ├── 📋 models/                # Django model exports
-│   └── ⚡ apps.py                 # Users AppConfig
-├── 🌐 api/                       # API versioning and routing
-│   └── 📋 v1/                    # Version 1 API
-│       ├── __init__.py           # API v1 URL patterns
-│       └── authentication.py     # Authentication API endpoints
-├── ⚙️ config/                    # Django settings and configuration
-│   ├── 🔧 settings/              # Environment-specific settings
-│   │   ├── __init__.py           # Settings package
-│   │   ├── 📋 base.py            # Common settings
-│   │   ├── 🔨 development.py     # Development configuration
-│   │   ├── 🚀 production.py      # Production configuration
-│   │   └── 🧪 test.py            # Testing configuration
-│   ├── 🔗 urls.py                # Root URL configuration
-│   ├── 🌐 wsgi.py                # WSGI configuration
-│   └── ⚙️ asgi.py                # ASGI configuration
-├── 🛠️ core/                      # Shared utilities and base classes
-│   ├── 🌐 application/           # Shared application-level components
-│   │   └── exceptions.py         # Business rule exceptions
-│   ├── 🗄️ domain/                # Shared domain components (ready for expansion)
-│   ├── 🛠️ infrastructure/        # Shared infrastructure components
-│   │   ├── exceptions/           # Exception handling framework
-│   │   │   ├── __init__.py       # Exception exports
-│   │   │   ├── base.py           # Base exception classes
-│   │   │   └── handler.py        # Custom exception handler
-│   │   ├── logging/              # Logging configuration
-│   │   │   └── base.py           # Loguru integration
-│   │   └── templates/            # Email templates
-│   │       └── verify_email.html # Email verification template
-│   └── 📋 presentation/          # Shared presentation components
-│       ├── responses.py          # Standard API responses
-│       └── serializers.py        # Common serializers
-├── 📝 docs/                      # Documentation
-│   └── authentication.md         # Authentication system documentation
-├── 📝 logs/                      # Application logs
-├── 📄 .env.template              # Environment variables template
-├── 🔧 Makefile                   # Common development commands
-├── ⚙️ manage.py                  # Django management script
-├── 📦 pyproject.toml             # Project dependencies & tools config
-├── ⚙️ startup.sh                 # Startup script for dockerised service
-├── ⚙️ nginx.conf.example         # Sample nginx configuration
-├── ⚙️ Dockerfile                 # Docker container configuration
-├── ⚙️ docker-compose.yml         # Docker Compose configuration
-└── 📦 uv.lock                    # uv dependency lock file
+🏠 housing_properties/
+├── 📱 apps/                        # Domain-specific applications
+│   ├── 🔐 authentication/          # Authentication & authorization
+│   │   ├── 🌐 application/         # Business rules (use cases)
+│   │   │   ├── ports.py            # Interfaces for external dependencies
+│   │   │   └── rules.py            # Business logic orchestration
+│   │   ├── 🗄️ domain/              # Core business entities & events
+│   │   │   ├── models.py           # Domain models (dataclasses)
+│   │   │   └── events.py           # Domain events
+│   │   ├── 🛠️ infrastructure/      # External concerns implementation
+│   │   │   ├── factory.py          # Dependency factory (to be replaced with DI)
+│   │   │   ├── middleware.py       # Token blacklisting middleware
+│   │   │   ├── models.py           # Django ORM models
+│   │   │   ├── pipelines.py        # Social authentication pipeline
+│   │   │   ├── repositories.py     # Data access implementations
+│   │   │   ├── services.py         # External service adapters
+│   │   │   └── event_handlers.py   # Domain event handlers
+│   │   ├── 📋 presentation/        # API layer
+│   │   │   ├── serializers.py      # Request/response serializers
+│   │   │   └── views.py            # API endpoints
+│   │   └── ⚡ apps.py               # App configuration
+│   └── 👤 users/                   # User domain
+│       ├── 🌐 application/         # User application services
+│       ├── 🗄️ domain/              # User domain models & enums
+│       ├── 🛠️ infrastructure/      # User data access & Django models
+│       └── ⚡ apps.py               # App configuration
+├── 🌐 api/                         # API versioning and routing
+│   └── 📋 v1/                      # Version 1 API endpoints
+├── ⚙️ config/                      # Django configuration
+│   ├── 🔧 settings/                # Environment-specific settings
+│   │   ├── base.py                 # Common settings
+│   │   ├── development.py          # Development configuration
+│   │   ├── production.py           # Production configuration
+│   │   └── test.py                 # Testing configuration
+│   ├── urls.py                     # Root URL configuration
+│   ├── wsgi.py                     # WSGI configuration
+│   └── asgi.py                     # ASGI configuration
+├── 🛠️ core/                        # Shared utilities and base classes
+│   ├── 🌐 application/             # Shared application components
+│   │   ├── event_bus.py            # Event handling system
+│   │   └── exceptions.py           # Business rule exceptions
+│   ├── 🗄️ domain/                  # Shared domain components
+│   │   └── events.py               # Base domain event
+│   ├── 🛠️ infrastructure/          # Shared infrastructure
+│   │   ├── exceptions/             # Exception handling framework
+│   │   ├── logging/                # Logging configuration
+│   │   ├── templates/              # Email templates
+│   │   └── celery.py               # Celery configuration
+│   └── 📋 presentation/            # Shared presentation components
+│       ├── responses.py            # Standard API responses
+│       └── serializers.py          # Common serializers
+├── 📝 docs/                        # Documentation
+├── 📝 logs/                        # Application logs
+├── ⚙️ Dockerfile                   # Docker container configuration
+├── ⚙️ docker-compose.yml           # Docker Compose setup
+├── ⚙️ startup.sh                   # Container startup script
+├── 📦 pyproject.toml               # Project dependencies & configuration
+├── 📄 .env.template                # Environment variables template
+├── 🔧 Makefile                     # Development commands
+└── 📦 uv.lock                      # Dependency lock file
 ```
 
 ---
 
 ## ✅ Implemented Features
 
-### 🏗️ **Core Infrastructure**
+### 🔐 **Authentication System**
 
-#### ⚙️ **Settings Management**
-- 🔧 **Modular configuration** for different environments (development, production, test).
-- 🌍 **Environment-specific settings** loaded via `django-environ`.
-- 🔒 **Secure configuration** by loading sensitive data from environment variables.
+#### **🎫 JWT Token Management**
+- **Access Tokens**: Short-lived (30 minutes) for API authentication
+- **Refresh Tokens**: Long-lived (24 hours) for token renewal
+- **Token Blacklisting**: Secure logout with token invalidation
+- **Custom Claims**: User type and email for frontend authorization
 
-#### ❌ **Exception Handling**
-- 🎯 **Custom exception handler** (`core.infrastructure.exceptions.handler.hp_exception_handler`) ensuring consistent API error responses.
-- 📋 **Standardized error format** across all endpoints (`success: false`, `message`, `error: {detail}`, `status_code`).
-- 🔍 **Detailed error tracking and logging** for unexpected server errors (e.g., `TypeError`, `AttributeError`) with full tracebacks for developers.
-- 🛡️ **Security-aware error messages**, avoiding exposure of sensitive internal system details to users.
+#### **👤 Multi-User Type System**
+- **CLIENT** - Property seekers and buyers
+- **AGENT** - Licensed real estate professionals  
+- **VENDOR** - Service providers and contractors
+- **SERVICE_PROVIDER** - Additional service providers
+- **ADMIN** - Platform administrators
 
-#### 📊 **Logging System**
-- ⚡ **Integrated Loguru** for structured, human-readable, and machine-parsable logs.
-- 🔄 **Automatic file rotation** (e.g., 10MB per file, 10 days retention) to manage log file sizes.
-- 📈 **Performance monitoring** and audit trails enabled through configurable logging levels.
-- 🎯 **Environment-specific logging levels** controlled by `DJANGO_LOGGING_LEVEL` environment variable.
+#### **📧 Email Verification**
+- **Secure token generation** using `secrets.token_urlsafe(32)`
+- **Cache-based storage** with automatic expiration (15 minutes)
+- **Template-based emails** with customizable verification links
+- **Protection against** brute-force and replay attacks
 
-#### 📚 **API Documentation**
-- 📖 **Swagger UI** for interactive API exploration via `drf-spectacular`.
-- 📋 **ReDoc** for comprehensive API documentation via `drf-spectacular`.
-- 🔄 **Auto-generated** from code annotations (`@extend_schema`) for up-to-date documentation.
-- 🎯 **Version-aware documentation** for API `/api/v1/`.
-
----
-
-### 👤 **Authentication Domain**
-
-#### 🔐 **Custom User Model**
-**Advanced Features:**
-- 📧 **Email-based authentication** (`USERNAME_FIELD = "email"`, no username required).
-- 🆔 **UUID7 for public identifiers** (time-ordered, globally unique, `uuid` field).
-- 👥 **Multiple user types** support (`UserType` enum and `user_type` field):
-  - 👤 **CLIENT** - property seekers and buyers
-  - 🏢 **AGENT** - licensed real estate professionals
-  - 🛠️ **VENDOR** - service providers and contractors
-  - 🔧 **SERVICE_PROVIDER** - additional service providers
-  - 👑 **ADMIN** - platform administrators
-- ✅ **Email verification** tracking (`is_email_verified` field).
-- 🔒 **Security-first design** with comprehensive password validation.
-
-#### 🔧 **Custom Managers**
-- 🧠 **Business logic encapsulation** in `UserManager` methods (e.g., `create_user`, `create_superuser`).
-- 🛡️ **Admin user protection** - prevents regular users from creating admin accounts.
-
-#### 🔗 **Social Authentication**
-- 🔵 **Google OAuth2** integration using `drf-social-oauth2` and `python-social-auth`.
-- 🏗️ **Extensible architecture** designed for adding additional social providers.
-- 🔄 **Seamless user creation** and profile setup for new social users via custom pipeline.
-- 🛡️ **Security-compliant implementation** for OAuth2 flows.
-
-#### 🎫 **Token Management System**
-- Uses `djangorestframework-simplejwt` for **JSON Web Tokens (JWT)** for stateless authentication.
-- **Access Tokens**: Short-lived (30 minutes), for API requests.
-- **Refresh Tokens**: Long-lived (24 hours), for obtaining new access tokens.
-- **Token Blacklisting**: Implemented via `BlacklistedToken` model and `TokenBlacklistMiddleware` to invalidate tokens on logout.
-- **Configurable Lifetimes**: Token validity periods are configurable in `settings.py`.
-
-#### 📧 **Email Verification System**
-- 🔐 **Secure token-based verification** using cryptographically secure tokens.
-- 💾 **Cache-based storage** for verification tokens with automatic expiration.
-- 📬 **Template-based emails** with customizable verification links.
-- ⏰ **Configurable expiration** (default 15 minutes) via `DJANGO_VERIFICATION_TOKEN_EXPIRY`.
-
----
+#### **🔗 Social Authentication**
+- **Google OAuth2** integration with extensible architecture
+- **Automatic user creation** or account linking
+- **Custom pipeline** for handling user type selection
+- **Seamless JWT integration** for unified authentication
 
 ### 🌐 **API Endpoints**
 
 #### **Authentication Endpoints**
-- `POST /api/v1/authentication/register/` - User registration with email verification
-- `POST /api/v1/authentication/login/` - User login with JWT token generation
-- `POST /api/v1/authentication/logout/` - User logout with token blacklisting
-- `POST /api/v1/authentication/verify-email/request/` - Request new verification email
-- `POST /api/v1/authentication/verify-email/{user_uuid}/{token}/` - Verify email address
-- `GET /api/v1/authentication/social/begin/{backend}/` - Initiate social authentication
-- `GET /api/v1/authentication/social/complete/{backend}/` - Complete social authentication
+```http
+POST   /api/v1/authentication/register/                     # User registration
+POST   /api/v1/authentication/login/                        # User login  
+POST   /api/v1/authentication/logout/                       # User logout
+PUT    /api/v1/authentication/update-user-type/             # Update user type
+POST   /api/v1/authentication/verify-email/request/         # Request verification
+POST   /api/v1/authentication/verify-email/{uuid}/{token}/  # Verify email
+GET    /api/v1/authentication/social/begin/{backend}/       # Start social auth
+GET    /api/v1/authentication/social/complete/{backend}/    # Complete social auth
+```
 
-#### **Security Features**
-- 🚫 **Rate limiting** - Anonymous (5/min), Authenticated (10/min)
-- 🔒 **Password validation** - Comprehensive security requirements
-- 🛡️ **JWT token security** - Blacklisting, rotation, and expiration
-- 📧 **Email verification enforcement** - Required for login
+#### **API Documentation**
+- **Swagger UI**: `/api/schema/swagger-ui/`
+- **ReDoc**: `/api/schema/redoc/`
+- **OpenAPI Schema**: `/api/schema/`
+
+### 🛡️ **Security Features**
+
+#### **Password Security**
+- **Complex validation**: Uppercase, lowercase, digit, special character
+- **Minimum length**: 8 characters
+- **No spaces allowed**: Prevents copy-paste errors
+- **Secure hashing**: Django's Argon2 password hasher
+
+#### **Rate Limiting**
+- **Anonymous users**: 5 requests/minute
+- **Authenticated users**: 10 requests/minute
+- **Per-endpoint control**: Configurable throttling
+- **IP-based protection**: Additional security layer
+
+#### **Security Headers**
+- **CSRF Protection**: Built-in Django CSRF middleware
+- **CORS Configuration**: Configurable allowed origins
+- **Security Middleware**: XSS, clickjacking protection
+- **HTTPS Enforcement**: Production security settings
+
+### 🏗️ **Infrastructure Features**
+
+#### **Exception Handling**
+- **Centralized error handling** with consistent API responses
+- **Security-aware messages** to prevent information leakage
+- **Detailed logging** for debugging while hiding internals
+- **Custom business exceptions** for domain-specific errors
+
+#### **Logging System**
+- **Structured logging** with Loguru integration
+- **Automatic log rotation** (10MB files, 10-day retention)
+- **Environment-specific levels** via `DJANGO_LOGGING_LEVEL`
+- **Performance monitoring** and audit trails
+
+#### **Event System**
+- **Domain events** for loose coupling between components
+- **Async processing** with Celery for email sending
+- **Event handlers** for cross-cutting concerns
+- **Extensible architecture** for future business events
 
 ---
 
@@ -203,19 +218,19 @@ The project follows a **modular monolith architecture** with clear domain bounda
 ### 📋 **Prerequisites**
 
 - 🐍 **Python 3.12+** (latest stable version)
-- 🗄️ **PostgreSQL** (primary database, recommended for production)
-- ⚡ **uv** (ultra-fast package management)
+- 🗄️ **PostgreSQL 14+** (recommended for production)
+- ⚡ **Redis 6+** (for caching and Celery)
+- 📦 **uv** (ultra-fast package manager)
 
-### 🔧 **Installation Process**
+### 🔧 **Quick Setup**
 
-#### 1. 📥 **Repository Setup**
+#### 1. **Repository Setup**
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd housing_properties
 ```
 
-#### 2. 🐍 **Environment Setup**
+#### 2. **Environment Setup**
 ```bash
 # Create virtual environment with Python 3.12
 uv venv --python 3.12
@@ -226,247 +241,325 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate     # Windows
 ```
 
-#### 3. 📦 **Dependencies Installation**
+#### 3. **Dependencies Installation**
 ```bash
 # Install all project dependencies
 make install
+# or manually:
+uv sync
 ```
 
-#### 4. 🗄️ **Database Configuration**
-```bash
-# Create PostgreSQL database
-createdb housing_properties
-
-# Configure database connection in .env
-# Example for PostgreSQL: DATABASE_URL=postgres://user:password@localhost:5432/housing_properties
-```
-
-#### 5. ⚙️ **Environment Configuration**
+#### 4. **Environment Configuration**
 ```bash
 # Copy environment template
 cp .env.template .env
 
-# Edit .env with your specific settings
-# Ensure the following critical variables are set for production:
-# - DJANGO_SECRET_KEY: A long, random string.
-# - DJANGO_DATABASE_URL: Your production database connection string.
-# - CORS_ALLOWED_ORIGINS: Comma-separated list of allowed origins (e.g., http://your-frontend.com).
-# - EMAIL_BACKEND, EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD: For sending emails.
-# - DEFAULT_FROM_EMAIL: The email address for outgoing emails.
-# - FROM_DOMAIN: Your API's public domain (e.g., https://api.your-domain.com) for link generation.
-# - SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET: Your Google OAuth credentials.
+# Edit .env with your settings
 nano .env  # or your preferred editor
 ```
 
-#### 6. 🔄 **Database Migration**
-```bash
-# Apply database migrations
-make migrate
-```
-
-#### 7. 👑 **Admin User Creation**
-```bash
-# Create superuser for admin access
-make superuser
-```
-
-#### 8. 🚀 **Development Server**
-```bash
-# Start development server
-make run
-
-# Server will be available at http://localhost:8000
-```
-
---- 
-
-## 🐳 Deployment and Running with Docker Compose
-
-This section outlines how to containerize and run the Housing & Properties backend application using Docker and Docker Compose, leveraging external cloud services for the database and caching.
-
-### Prerequisites
-
-Before proceeding, ensure you have the following installed on your system:
-
-*   **Docker**: Install Docker Engine for Linux ([Official instructions](https://docs.docker.com/engine/install/))
-*   **Docker Compose**: On Linux, you may need to install Docker Compose separately. See [Install Docker Compose](https://docs.docker.com/compose/install/) for instructions.
-
-### 1. Project Structure for Docker
-
-Ensure your project root directory (HP-Backend/) contains the following files:
-
-*   `Dockerfile`
-*   `docker-compose.yml`
-*   `startup.sh` (Startup script with conditional SSL support)
-*   `.env` (This file should NOT be committed to version control)
-*   `pyproject.toml` (uv package management)
-
-### 2. Docker Configuration Files
-
-#### `Dockerfile`
-```dockerfile
-FROM python:3.12-slim-bookworm
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-COPY . .
-RUN chmod +x /app/startup.sh
-RUN uv sync
-```
-
-#### `docker-compose.yml`
-```yaml
-services:
-  web:
-    build: .
-    command: ./startup.sh
-    volumes:
-      - .:/app
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-
-volumes:
-  static_volume:
-  media_volume: 
-```
-
-#### `startup.sh`
-```bash
-#!/bin/bash
-uv run manage.py collectstatic --noinput
-uv run manage.py migrate
-if [ "$DJANGO_ENVIRONMENT" = "development" ]; then
-    echo "Starting Gunicorn with SSL for development..."
-    uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000 --certfile cert.crt --keyfile cert.key
-else
-    echo "Starting Gunicorn without SSL..."
-    uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000
-fi
-```
-
-### 3. Configure the `.env` File
-
-The `.env` file holds critical environment variables for your application, including sensitive credentials for external services. Create a file named `.env` in the root of your `HP-Backend` directory with the following structure. **Remember to replace all placeholder values with your actual credentials and configurations.**
-
-```dotenv
-# Django Core Settings
-DJANGO_SECRET_KEY=your_django_secret_key
+**Critical Environment Variables:**
+```env
+# Django Core
+DJANGO_SECRET_KEY=your_secret_key_here
 DJANGO_DEBUG=False
-DJANGO_ENVIRONMENT=production  # Set to 'development' for SSL/HTTPS in local development
-DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,<your_domain_if_any>
+DJANGO_ENVIRONMENT=development
 
-# External PostgreSQL Database (Azure PostgreSQL Example)
-# Ensure your Django settings are configured to read this DATABASE_URL
-DJANGO_DATABASE_URL=postgresql://your_database_user:your_database_password@your_azure_postgresql_host.postgres.database.azure.com:5432/your_database_name
+# Database
+DJANGO_DATABASE_URL=postgresql://user:password@localhost:5432/housing_properties
 
-DATABASE_CONN_MAX_AGE=600
+# Redis
+REDIS_URL=redis://localhost:6379/0
 
-# External Redis Cache (Upstash Redis Example)
-# Ensure your Django settings are configured to read this REDIS_URL
-REDIS_URL=rediss://default:your_upstash_redis_password@your_upstash_redis_host:6379
-
-# CORS Settings
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,<your_frontend_url>
-
-# Email Settings (Gmail SMTP Example)
-DEFAULT_FROM_EMAIL=noreply@housingandproperties.com
+# Email (Example: Gmail SMTP)
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your_gmail_username@gmail.com
-EMAIL_HOST_PASSWORD=your_gmail_app_password # Use an App Password for security
+EMAIL_HOST_USER=your_email@gmail.com
+EMAIL_HOST_PASSWORD=your_app_password
 
-# Authentication and Token Settings
-DJANGO_VERIFICATION_TOKEN_EXPIRY=15 # minutes
-FROM_DOMAIN=http://127.0.0.1:8000 # Your backend API URL (use https:// for production)
+# Social Authentication
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=your_google_client_id
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=your_google_client_secret
 
-# Cache Settings
-DJANGO_CACHE_TIMEOUT=15 # seconds (general cache timeout)
-DJANGO_CACHE_BACKEND=django.core.cache.backends.redis.RedisCache
-
-# Logging Level
-DJANGO_LOGGING_LEVEL=INFO
-
-# Google OAuth2 Credentials (if used)
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=your_google_oauth2_client_id
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=your_google_oauth2_client_secret
+# Security
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
-### 4. SSL Certificate Setup (Development Only)
-
-If you're running in development mode (`DJANGO_ENVIRONMENT=development`), you'll need SSL certificates for HTTPS:
-
+#### 5. **Database Setup**
 ```bash
-# Generate self-signed certificates for local development
-openssl req -x509 -newkey rsa:4096 -keyout cert.key -out cert.crt -days 365 -nodes
+# Create and run migrations
+make migrate
+# or manually:
+uv run manage.py migrate
 ```
 
-**Note:** For production deployments, use proper SSL certificates from a Certificate Authority or let your reverse proxy (nginx, CloudFlare, etc.) handle SSL termination.
+#### 6. **Create Superuser**
+```bash
+make superuser
+# or manually:
+uv run manage.py createsuperuser
+```
 
-### 5. Build and Run the Application
+#### 7. **Start Development Server**
+```bash
+make run
+# or manually:
+uv run manage.py runserver
 
-Navigate to your `HP-Backend` root directory in the terminal and execute the following command:
+# Server available at: http://localhost:8000
+```
+
+### 🔧 **Development Commands**
 
 ```bash
+# Install dependencies
+make install
+
+# Run development server
+make run
+
+# Run migrations
+make migrate
+
+# Create new migrations
+make makemigrations
+
+# Create superuser
+make superuser
+
+# Run tests
+make test
+
+# Format code
+make format
+
+# Lint code
+make lint
+
+# Run all checks
+make check
+
+# Clean cache and temp files
+make clean
+```
+
+---
+
+## 🐳 Docker Deployment
+
+### **Development with Docker**
+```bash
+# Build and start services
 docker-compose up --build
-```
 
-**Explanation of the command:**
-
-*   `docker-compose up`: Starts the services defined in your `docker-compose.yml` file.
-*   `--build`: Ensures that the Docker image is rebuilt before starting the container.
-
-This command will:
-
-1.  **Build the Docker image** using the optimized Dockerfile with `uv` package manager
-2.  **Start the container** and execute the startup script (`startup.sh`)
-3.  **Inside the container**, the startup script will:
-    *   Run `uv run manage.py collectstatic --noinput`: Gathers all static files
-    *   Run `uv run manage.py migrate`: Applies any pending database migrations
-    *   **Conditionally start Gunicorn**:
-        - **Development**: `uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000 --certfile cert.crt --keyfile cert.key` (with SSL)
-        - **Production**: `uv run gunicorn config.wsgi:application --bind 0.0.0.0:8000` (without SSL)
-
-### 6. Accessing the Application
-
-Once Docker Compose has finished starting up, your Django application will be accessible at:
-
-- **Development mode** (`DJANGO_ENVIRONMENT=development`): `https://localhost:8000` (SSL enabled)
-- **Production mode**: `http://localhost:8000` (SSL handled by reverse proxy)
-
-### 7. Development vs Production Modes
-
-The application automatically adapts based on the `DJANGO_ENVIRONMENT` variable:
-
-| Environment | SSL | URL | Use Case |
-|-------------|-----|-----|----------|
-| `development` | ✅ Built-in SSL | `https://localhost:8000` | Local development with HTTPS |
-| `production` | ❌ External SSL | `http://localhost:8000` | Production with reverse proxy SSL |
-
-### 8. Container Management
-
-**Common Docker Compose commands:**
-
-```bash
-# Start in detached mode (background)
+# Run in background
 docker-compose up -d
 
 # View logs
 docker-compose logs -f web
 
-# Stop services
-docker-compose down
-
-# Rebuild and restart
-docker-compose up --build
-
-# Execute commands inside the running container
+# Execute commands in container
 docker-compose exec web uv run manage.py shell
 docker-compose exec web uv run manage.py createsuperuser
 ```
+
+### **Production Deployment**
+```bash
+# Set production environment
+echo "DJANGO_ENVIRONMENT=production" >> .env
+
+# Use production settings
+docker-compose -f docker-compose.prod.yml up -d
+
+# SSL certificates (if needed)
+openssl req -x509 -newkey rsa:4096 -keyout cert.key -out cert.crt -days 365 -nodes
+```
+
+---
+
+## 📊 API Documentation
+
+### **Interactive Documentation**
+- **Swagger UI**: http://localhost:8000/api/schema/swagger-ui/
+- **ReDoc**: http://localhost:8000/api/schema/redoc/
+- **OpenAPI Schema**: http://localhost:8000/api/schema/
+
+### **Authentication Examples**
+
+#### **User Registration**
+```bash
+curl -X POST http://localhost:8000/api/v1/authentication/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!",
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
+```
+
+#### **User Login**
+```bash
+curl -X POST http://localhost:8000/api/v1/authentication/login/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+#### **Authenticated Request**
+```bash
+curl -X GET http://localhost:8000/api/v1/users/profile/ \
+  -H "Authorization: Bearer your_access_token_here"
+```
+
+---
+
+## 🔒 Security
+
+### **Production Security Checklist**
+- ✅ **HTTPS**: Force SSL in production
+- ✅ **Secret Key**: Use strong, random secret key
+- ✅ **Debug Mode**: Disabled in production
+- ✅ **Database**: Secure database credentials
+- ✅ **CORS**: Configure allowed origins
+- ✅ **Rate Limiting**: Enable throttling
+- ✅ **Security Headers**: XSS, CSRF, clickjacking protection
+- ✅ **Email**: Use secure email backend (not console)
+- ✅ **Social Auth**: Secure OAuth2 credentials
+- ✅ **Logging**: Appropriate log levels
+
+### **Security Headers Applied**
+```python
+# Automatically applied in production
+SECURE_SSL_REDIRECT = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000
+```
+
+---
+
+## 🧪 Testing
+
+### **Running Tests**
+```bash
+# Run all tests
+make test
+# or
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=apps --cov-report=html
+
+# Run specific test file
+uv run pytest tests/test_authentication/
+
+# Run with verbose output
+uv run pytest -v
+```
+
+### **Test Structure**
+```
+tests/
+├── conftest.py                 # Test configuration
+├── test_authentication/        # Authentication tests
+│   ├── test_rules.py           # Business logic tests
+│   ├── test_api.py             # API endpoint tests
+│   └── test_services.py        # Service tests
+└── test_users/                 # User tests
+    ├── test_models.py          # Model tests
+    └── test_repositories.py    # Repository tests
+```
+
+---
+
+## 📈 Performance & Monitoring
+
+### **Database Optimization**
+- **Connection pooling** with configurable `CONN_MAX_AGE`
+- **Query optimization** with select_related/prefetch_related
+- **Database indexing** on frequently queried fields
+- **Migration strategies** for zero-downtime deployments
+
+### **Caching Strategy**
+- **Redis caching** for session data and temporary tokens
+- **Template caching** for static content
+- **API response caching** for expensive operations
+- **Database query caching** for repeated queries
+
+### **Monitoring**
+- **Structured logging** with request tracing
+- **Performance metrics** via Django admin
+- **Error tracking** with detailed stack traces
+- **Health check endpoints** for system monitoring
+
+---
+
+## 🔄 Development Workflow
+
+### **Code Quality**
+```bash
+# Format code with ruff
+make format
+
+# Lint code
+make lint
+
+# Run pre-commit hooks
+pre-commit run --all-files
+
+# Type checking (if using mypy)
+mypy apps/
+```
+
+### **Git Workflow**
+```bash
+# Feature development
+git checkout -b feature/new-feature
+git commit -m "feat: add new feature"
+git push origin feature/new-feature
+
+# Code review and merge to main
+```
+
+### **Environment Management**
+- **Development**: Local SQLite, console email backend
+- **Staging**: PostgreSQL, SMTP email, Redis cache
+- **Production**: PostgreSQL, secure settings, monitoring
+
+---
+
+
+## 🤝 Contributing
+
+### **Development Setup**
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+### **Code Standards**
+- Follow PEP 8 style guidelines
+- Write comprehensive tests
+- Document new features
+- Use conventional commit messages
+- Maintain backward compatibility
+
+---
+
+## 📚 Additional Resources
+
+- **Django Documentation**: https://docs.djangoproject.com/
+- **DRF Documentation**: https://www.django-rest-framework.org/
+- **Clean Architecture**: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
+- **API Design Best Practices**: https://restfulapi.net/
+- **Python Type Hints**: https://docs.python.org/3/library/typing.html
+
+---

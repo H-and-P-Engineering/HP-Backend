@@ -17,25 +17,62 @@
 
 ## 🏗️ System Architecture Overview
 
-The **Housing & Properties** authentication system implements a sophisticated **multi-layered architecture** that separates concerns across distinct components, adhering to **Clean Architecture** principles. The system leverages `Django REST Framework` for API development, `djangorestframework-simplejwt` for JWT token management, and `drf-social-oauth2` for social authentication integration.
+The **Housing & Properties** authentication system implements a sophisticated **multi-layered architecture** that separates concerns across distinct components, adhering to **Clean Architecture** principles. The system leverages `Django REST Framework` for API development, `djangorestframework-simplejwt` for JWT token management, and `python-social-auth` with `drf-social-oauth2` for social authentication integration.
 
 ### 🎯 **Architectural Principles**
 
 The architecture follows a clear separation pattern where:
-- 📋 **Presentation Layer** (`apps/authentication/presentation/`):
-  - **Views** handle HTTP concerns, request routing, and delegate to the Application Layer.
-  - **Serializers** manage data validation and transformation for API input/output.
-- 🌐 **Application Layer** (`apps/authentication/application/`):
-  - **Rules** (Use Cases) encapsulate core business logic and orchestration, operating on Domain Models and interacting with the Infrastructure Layer via Ports.
-  - **Ports** define interfaces for external concerns (e.g., `UserRepositoryInterface`, `EmailServiceAdapterInterface`).
-- 🗄️ **Domain Layer** (`apps/authentication/domain/`):
-  - **Models** are pure business entities (dataclasses).
-- 🛠️ **Infrastructure Layer** (`apps/authentication/infrastructure/`):
-  - **Adapters** (e.g., `DjangoPasswordServiceAdapter`, `DjangoEmailServiceAdapter`) provide concrete implementations for the Domain Layer's Ports.
-  - **Repositories** (e.g., `DjangoUserRepository`, `DjangoBlackListedTokenRepository`) manage data persistence, mapping Domain Models to Django ORM models.
-  - **Django ORM Models** define the database schema and are specific to the Django framework.
 
-This layered design ensures **maintainability**, **testability** (especially for the core business logic), and **scalability** while adhering to **SOLID** principles.
+- 📋 **Presentation Layer** (`apps/authentication/presentation/`):
+  - **Views** handle HTTP concerns using function-based views with `@api_view` decorators
+  - **Serializers** manage data validation and transformation for API input/output
+  - **URL routing** organized in `api/v1/authentication.py` for versioned endpoints
+
+- 🌐 **Application Layer** (`apps/authentication/application/`):
+  - **Rules** (Use Cases) encapsulate core business logic and orchestration:
+    - `RegisterUserRule` - handles user registration with email verification
+    - `LoginUserRule` - manages user authentication and token generation
+    - `LogoutUserRule` - handles token blacklisting for secure logout
+    - `VerifyEmailRule` - processes email verification flow
+    - `UpdateUserTypeRule` - manages user type updates
+    - `SocialAuthenticationRule` - handles social login flows
+  - **Ports** define interfaces for external concerns (e.g., `UserRepositoryInterface`, `EmailServiceAdapterInterface`)
+
+- 🗄️ **Domain Layer**:
+  - **User Domain** (`apps/users/domain/`):
+    - `User` dataclass with business attributes (email, password_hash, user_type, etc.)
+    - `UserType` enum with values: CLIENT, AGENT, VENDOR, SERVICE_PROVIDER, ADMIN
+    - `UserEvent` base class for domain events
+  - **Authentication Domain** (`apps/authentication/domain/`):
+    - `BlackListedToken` dataclass for JWT token blacklisting
+    - Domain events: `UserVerificationEmailEvent`, `UserEmailVerifiedEvent`, `UserUpdateEvent`, `UserLogoutEvent`
+
+- 🛠️ **Infrastructure Layer** (`apps/authentication/infrastructure/`):
+  - **Adapters** provide concrete implementations:
+    - `DjangoPasswordServiceAdapter` - password hashing and validation
+    - `DjangoEmailServiceAdapter` - templated email sending
+    - `DjangoCacheServiceAdapter` - Redis/cache operations
+    - `DjangoJWTTokenAdapter` - JWT token creation and validation
+    - `SocialAuthenticationAdapter` - social auth integration
+    - `DjangoEventPublisherAdapter` - async event publishing with Celery
+  - **Repositories** handle data persistence:
+    - `DjangoUserRepository` - user CRUD operations with domain model mapping
+    - `DjangoBlackListedTokenRepository` - token blacklist management
+  - **Django Models**:
+    - Custom `User` model extending `AbstractUser` with UUID7, email authentication
+    - `BlackListedToken` model for JWT invalidation
+  - **Factory** (`factory.py`) - dependency injection setup and event handler registration
+
+### 🎭 **Event-Driven Architecture**
+
+The system implements an event-driven pattern using:
+
+- **Domain Events**: Pure domain objects representing business events
+- **Event Bus**: Central event dispatching mechanism (`core/application/event_bus.py`)
+- **Event Handlers**: Async handlers for side effects (email sending, cache updates)
+- **Event Publisher**: Celery-based async event processing
+
+This layered design ensures **maintainability**, **testability**, and **scalability** while adhering to **SOLID** principles.
 
 ---
 
@@ -43,479 +80,910 @@ This layered design ensures **maintainability**, **testability** (especially for
 
 ### 📝 Registration Process
 
-The email-based registration flow begins when a client sends a `POST` request to `/api/v1/authentication/register/`. The `register_user` view (in `apps/authentication/presentation/views.py`) processes this request through a **carefully orchestrated sequence** of operations, delegating to the Application Layer.
+The email-based registration flow begins when a client sends a `POST` request to `/api/v1/authentication/register/`. The `register_user` view processes this request through a **carefully orchestrated sequence** of operations.
 
 #### 🔍 **Request Validation**
-Upon receiving the request, the view instantiates the `UserRegistrationSerializer` which validates the incoming data. This serializer enforces **strict validation rules** including:
+The `UserRegistrationSerializer` validates incoming data with **strict validation rules**:
 
-- ✅ **Email format validation** - RFC-compliant email address structure
-- 🔐 **Password minimum length** - 8 characters minimum requirement
-- 👤 **User type selection** - from predefined choices (**CLIENT, AGENT, VENDOR, ADMIN**)
-- 📝 **Mandatory name fields** - both **first** and **last name** required
+```python
+class UserRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    first_name = serializers.CharField(required=True, max_length=30)
+    last_name = serializers.CharField(required=True, max_length=30)
+```
 
 #### 🛡️ **Advanced Password Validation**
-Once validation passes, the view delegates to the `RegisterUserRule` (in `apps/authentication/application/rules.py`). This rule utilizes `DjangoPasswordServiceAdapter` (in `apps/authentication/infrastructure/services.py`) to perform **advanced password validation** which implements comprehensive security checks:
+The serializer implements comprehensive password security checks:
 
-**Password Requirements:**
+**Password Requirements (enforced via regex):**
 - 🚫 **No spaces allowed** - prevents copy-paste errors
 - 🔤 **One uppercase letter** - enhances complexity
 - 🔡 **One lowercase letter** - ensures mixed case
 - 🔢 **One digit** - numerical requirement
-- 🔣 **One special character** - symbol inclusion
+- 🔣 **One special character** - symbol inclusion (`!@#$%^&*(),.?"'{}|<>`)
 
-*These validations use **regular expressions** to ensure password complexity resistant to dictionary attacks.*
+#### 👤 **User Creation Flow**
+The `RegisterUserRule` orchestrates the registration process:
 
-#### 👤 **User Creation & Profile Setup**
-After password validation succeeds, the `RegisterUserRule` calls the `DjangoUserRepository`'s `create` method (in `apps/authentication/infrastructure/repositories.py`). The repository:
+1. **Password Hashing**: Uses `DjangoPasswordServiceAdapter.hash()` with Django's secure password hashing
+2. **Domain User Creation**: Creates a `User` domain model with validated data
+3. **Repository Persistence**: `DjangoUserRepository.create()` saves to database
+4. **Event Publishing**: Triggers `UserVerificationEmailEvent` for async email sending
 
-1. **🔄 Normalizes** the email address for case-insensitive uniqueness.
-2. **👤 Creates** the user instance in the database using Django's ORM.
-
-*Note: User profiles (AgentProfile, VendorProfile, ClientProfile) are conceptually described in the documentation but are not currently implemented as separate Django models or domain models in the provided codebase. This is a future enhancement.* 
+```python
+def execute(self, email: str, password: str, first_name: str, last_name: str) -> DomainUser:
+    password_hash = self._password_service.hash(password)
+    
+    user = DomainUser(
+        email=email,
+        password_hash=password_hash,
+        first_name=first_name,
+        last_name=last_name,
+    )
+    
+    created_user = self._user_repository.create(user)
+    self._event_publisher.publish(UserVerificationEmailEvent(created_user.id))
+    
+    return created_user
+```
 
 #### 🎫 **JWT Token Generation**
-The registration process continues with JWT token generation. The `RegisterUserRule` obtains tokens via the `DjangoJWTTokenAdapter` (in `apps/authentication/infrastructure/services.py`). This adapter creates both `access` and `refresh` tokens using the `djangorestframework-simplejwt` library. These tokens include **custom claims** for:
-- 🏷️ `user_type` - for role-based access control
-- 📧 `email` - for quick user identification
-
-*This enables frontend applications to make authorization decisions without additional API calls.*
+After successful user creation, the system generates JWT tokens via `DjangoJWTTokenAdapter`:
+- **Access Token**: 30-minute lifetime for API requests
+- **Refresh Token**: 24-hour lifetime for token renewal
+- **Token Rotation**: Enabled for enhanced security
 
 #### 📬 **Email Verification Setup**
-Finally, the `RegisterUserRule` orchestrates sending a verification email by utilizing the `RequestEmailVerificationRule`. This rule leverages:
+The email verification process is handled asynchronously:
 
-1. **🔐 `DjangoVerificationServiceAdapter`**: Generates a cryptographically secure token using Python's `secrets` module and creates the verification link.
-2. **💾 `DjangoCacheServiceAdapter`**: Stores the token in Django's cache with user's `UUID` as part of the key.
-3. **📧 `DjangoEmailServiceAdapter`**: Triggers sending the verification email using a Django template.
-4. **⏰ Expiration**: The cache entry automatically expires after a configurable period (default 15 minutes), set by `settings.DJANGO_VERIFICATION_TOKEN_EXPIRY`.
+1. **Event Handler**: `send_verification_email_event` processes the `UserVerificationEmailEvent`
+2. **Token Generation**: `DjangoVerificationServiceAdapter.generate_token()` creates secure 32-byte token
+3. **Cache Storage**: Token stored in Redis with key pattern `email_verify_{user_uuid}`
+4. **Link Generation**: Full verification URL constructed with `FROM_DOMAIN` setting
+5. **Email Dispatch**: HTML template email sent via `DjangoEmailServiceAdapter`
+
+**Cache Configuration:**
+- **Expiration**: 15 minutes (configurable via `DJANGO_VERIFICATION_TOKEN_EXPIRY`)
+- **Backend**: Redis for production, local memory for development
+- **Auto-cleanup**: Expired tokens automatically removed
 
 ---
 
 ### 🔐 Login Process
 
-The login flow handles authentication for existing users through the `/api/v1/authentication/login/` endpoint. The `login_user` view (in `apps/authentication/presentation/views.py`) receives credentials and validates them through the `UserLoginSerializer`, then delegates to the Application Layer.
+The login flow authenticates existing users through `/api/v1/authentication/login/` endpoint.
 
 #### 🎯 **Authentication Flow**
-The `LoginUserRule` (in `apps/authentication/application/rules.py`) performs authentication using the `DjangoUserRepository` and `DjangoPasswordServiceAdapter`:
+The `LoginUserRule` performs sequential security checks:
 
-**Sequential Security Checks:**
-1. **🔍 Credential Authentication** - validates email/password combination.
-2. **✅ Account Status Check** - ensures account is active and accessible.
-3. **📧 Email Verification Check** - enforces email verification requirement.
-4. **📊 Audit Logging** - updates `last_login` timestamp for security monitoring.
-5. **🎫 Token Generation** - creates fresh JWT tokens via `DjangoJWTTokenAdapter` for session management.
+```python
+def execute(self, email: str, password: str) -> DomainUser:
+    user = self._user_repository.get_by_email(email)
+    
+    if not user or not self._password_service.check(password, user.password_hash):
+        raise BusinessRuleException("Login failed. Provided email or password is invalid.")
+    
+    if not user.is_active:
+        raise BusinessRuleException("Login failed. Requested user account is deactivated.")
+    
+    if not user.is_email_verified:
+        raise BusinessRuleException("Login failed. Requested user email is not verified.")
+    
+    # Update last login timestamp
+    self._event_publisher.publish(
+        UserUpdateEvent(update_fields={"last_login": datetime.now(tz=UTC)}, user_id=user.id)
+    )
+    
+    return user
+```
 
 **Security Features:**
-- 🚫 **Generic error messages** prevent username enumeration attacks.
-- 🔒 **Deactivated account protection** - blocks access with `BadRequestError`.
-- ✉️ **Email verification enforcement** - unverified accounts cannot login.
+- 🚫 **Generic error messages** prevent username enumeration attacks
+- 🔒 **Account status validation** ensures only active users can login
+- ✉️ **Email verification enforcement** blocks unverified accounts
+- 📊 **Audit logging** tracks login attempts and timestamps
 
 ---
 
 ### ✉️ Email Verification Mechanism
 
-The email verification system implements a **secure token-based approach** balancing security with user convenience. The `verify_email` view (in `apps/authentication/presentation/views.py`) delegates to the `VerifyEmailRule` for processing.
+The email verification system implements a **secure token-based approach** with cache storage.
 
 #### 🔐 **Token Generation & Storage**
-When a user registers, the `RequestEmailVerificationRule`:
-- **🎲 Generates** a verification token using `secrets.token_urlsafe(32)` via `DjangoVerificationServiceAdapter`.
-- **💾 Stores** the token in Django's cache framework (not database) via `DjangoCacheServiceAdapter`.
-- **🏷️ Uses** cache key pattern: `email_verify_{user_uuid}`.
+When verification is requested, the `RequestEmailVerificationRule`:
 
-**Cache-Based Advantages:**
-- ⏰ **Automatic expiration** without cleanup jobs.
-- 📈 **Reduced database load** for temporary data.
-- 🔄 **Backend flexibility** (Redis, Memcached, etc.).
+1. **Validates User**: Ensures user exists and isn't already verified
+2. **Cache Check**: Prevents spam by checking for existing verified status
+3. **Token Generation**: Creates cryptographically secure token using `secrets.token_urlsafe(32)`
+4. **Cache Storage**: Stores `(user_id, token)` tuple with user UUID as key
+5. **Event Publishing**: Triggers async email sending
 
 #### ✅ **Verification Process**
-When users click verification links, the `VerifyEmailRule`:
-1. **🌐 Accesses** endpoint: `/api/v1/authentication/verify-email/{user_uuid}/{verification_token}`.
-2. **🔍 Validates** cached token against provided parameters via `DjangoCacheServiceAdapter`.
-3. **🔐 Verifies** user UUID matches to prevent cross-account attacks.
-4. **✅ Activates** account by setting `is_email_verified = True` via `DjangoUserRepository`.
-5. **🧹 Cleans up** cache entry to prevent token reuse via `DjangoCacheServiceAdapter`.
+The `VerifyEmailRule` handles verification via `/api/v1/authentication/verify-email/{user_uuid}/{verification_token}/`:
+
+1. **Cache Retrieval**: Fetches stored token data using user UUID
+2. **Token Validation**: Compares provided token with cached value
+3. **User Verification**: Cross-validates user ID and UUID
+4. **Account Activation**: Publishes `UserEmailVerifiedEvent` for processing
+5. **Cache Cleanup**: Removes verification token to prevent reuse
+
+**Event-Driven Side Effects:**
+- `cache_email_verification_status`: Caches verified status
+- `update_user_verification_status`: Updates database `is_email_verified` flag
 
 ---
 
 ## 🚪 Logout Implementation
 
-### 🎯 **Overview**
+### 🎯 **JWT Token Blacklisting**
 
-The logout flow handles **invalidation of JWT access tokens** for authenticated users through the `/api/v1/authentication/logout/` endpoint. Due to the **stateless nature of JWT tokens**, access tokens cannot easily be deleted or revoked server-side, hence the need for a **token blacklisting mechanism** to prevent their further use. The `logout_user` view (in `apps/authentication/presentation/views.py`) delegates to the Application Layer.
+Due to JWT's stateless nature, the system implements token blacklisting for secure logout via `/api/v1/authentication/logout/`.
 
-### 🔄 **Logout Process Flow**
+#### 🔄 **Logout Process Flow**
 
-#### 1. 📨 **Request Processing**
-The `logout_user` view receives a request's `AUTHORIZATION` header and validates it through the `UserLogoutSerializer`, which ensures proper authorization header structure for `JWTAuthentication`.
-
-#### 2. ✅ **Token Validation & Blacklisting**
-The `LogoutUserRule` (in `apps/authentication/application/rules.py`) performs validation checks on the extracted `access_token` and handles its **blacklisting** by utilizing `DjangoBlackListedTokenRepository` and `DjangoJWTTokenAdapter`:
-
-- 🔍 **Token Validation**: The `DjangoJWTTokenAdapter` checks the token's expiry.
-- ❌ **Error Handling**: If any check fails, a `ValidationError` is raised.
-
-#### 3. 🚫 **Token Blacklisting**
-Upon successful validation, the `LogoutUserRule` delegates to the `DjangoBlackListedTokenRepository` to:
-- 📝 **Register** the token in the database as "blacklisted" (via `BlackListedToken` model).
-- 🔒 **Prevent** future use of the token even if it hasn't expired.
-- 👤 **Associate** the blacklisted token with the user account for audit purposes.
-
-#### 4. ✨ **Cleanup & Response**
-- ✅ **Success Response**: Returns confirmation of successful logout.
-
-### 🗄️ **BlacklistedToken Model**
+1. **Request Validation**: `UserLogoutSerializer` extracts and validates access token
+2. **Token Processing**: `LogoutUserRule` validates token expiry and creates blacklist entry
+3. **Database Storage**: `DjangoBlackListedTokenRepository` persists blacklisted token
+4. **Event Publishing**: `UserLogoutEvent` triggers async blacklisting
 
 ```python
-from core.models import BaseModel
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-
-User = get_user_model()
-
-class BlacklistedToken(BaseModel):
-    """
-    🚫 Model to store blacklisted JWT access tokens.
-
-    Used in logout functionality to invalidate access tokens before expiry.
-    """
-
-    access = models.TextField(unique=True)
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="blacklisted_tokens",
-        help_text="👤 User associated with the blacklisted token"
+def execute(self, user_id: int, access_token: str) -> None:
+    token_expiry = self._jwt_token_service.check_access_token_expiry(access_token)
+    
+    token = BlackListedToken(
+        access=access_token,
+        user_id=user_id,
+        expires_at=token_expiry
     )
-    expires_at = models.DateTimeField()
-
-    class Meta:
-        """⚙️ Metadata options for the BlacklistedToken model."""
-
-        db_table = "auth_blacklisted_tokens"
-        indexes = [
-            models.Index(fields=["access", "user"]),
-            models.Index(fields=["expires_at"])
-        ]
-
-    def __str__(self) -> str:
-        """📝 Returns a string representation of the blacklisted token."""
-        return f"🚫 Token {self.access[:20]}... for {str(self.user)} (blacklisted at {self.created_at})"
-
-    @classmethod
-    def is_blacklisted(cls, access_token: str) -> bool:
-        """🔍 Check if an access token is blacklisted."""
-        return cls.objects.filter(access=access_token).exists()
-
-    @classmethod
-    def cleanup_expired(cls) -> None:
-        """🧹 Delete expired blacklisted tokens to keep database clean."""
-        return cls.objects.filter(expires_at__lt=timezone.now()).delete()
+    
+    self._event_publisher.publish(UserLogoutEvent(token=token, user_id=user_id))
 ```
 
-### 🛡️ **TokenBlacklistMiddleware**
+#### 🛡️ **TokenBlackListMiddleware**
+
+Middleware intercepts requests to check token blacklist status:
 
 ```python
-from django.utils.deprecation import MiddlewareMixin
-from apps.authentication.models import BlacklistedToken
-from core.logging import logger
-from rest_framework.request import Request
+def process_request(self, request: Request) -> None:
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    if auth_header.startswith("Bearer "):
+        access_token = auth_header.split(" ")[1]
+        
+        if self.blacklisted_token_repository.exists(access_token):
+            request.META["HTTP_AUTHORIZATION"] = ""
+            logger.warning(f"Blacklisted token attempted to access {request.path}")
+```
 
-class TokenBlacklistMiddleware(MiddlewareMixin):
-    """
-    🛡️ Middleware to check if JWT tokens are blacklisted.
+#### 🗄️ **BlackListedToken Model**
 
-    This runs before the authentication backend to prevent
-    blacklisted tokens from being authenticated.
-    """
-
-    def process_request(self, request: Request) -> None:
-        """
-        🔍 Check if the token in the request is blacklisted.
-
-        If the token is blacklisted, clears the authorization header
-        to prevent authentication and logs the attempt.
-        """
-        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
-
-        if auth_header.startswith("Bearer "):
-            # 🔧 Extract token from Bearer header
-            token = auth_header.split(" ")[1]
-
-            # 🚫 Check if token is blacklisted
-            if BlacklistedToken.is_blacklisted(token):
-                # 🚨 Clear authorization header to prevent authentication
-                request.META["HTTP_AUTHORIZATION"] = ""
-
-                # 📝 Log security event
-                logger.warning(
-                    f"🚨 Blacklisted token attempted to access: {request.path}"
-                )
-
-        return None
+```python
+class BlackListedToken(models.Model):
+    access = models.TextField(unique=True)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    @classmethod
+    def is_blacklisted(cls, access_token: str) -> bool:
+        return cls.objects.filter(access=access_token).exists()
 ```
 
 ---
 
 ## 🔗 Social Authentication Implementation
 
-The social authentication system allows users to register and log in using third-party providers like Google. This is handled by `drf-social-oauth2` and integrated into the existing authentication flow.
+The social authentication system integrates with `python-social-auth` for third-party provider support, enabling users to register and login using OAuth providers like Google.
 
-### 🚀 Social Authentication Flow
+### 🚀 **Social Authentication Flow**
 
-The social authentication process involves two main steps:
+The social authentication process involves two main steps with comprehensive user type handling:
 
-1.  **Initiating Social Login (`/api/v1/authentication/social/begin/<backend>/`):**
-    *   A client initiates the social login by making a `GET` request to this endpoint, specifying the social `backend` (e.g., `google-oauth2`).
-    *   An optional `user_type` query parameter can be provided (e.g., `?user_type=AGENT`) to pre-select the user's role during registration.
-    *   The `begin_social_authentication` view (in `apps/authentication/presentation/views.py`) redirects the user to the social provider's authentication page.
-    *   The `user_type` is stored in the session to be used during the completion phase.
+#### 1. **Initiating Social Login** (`/api/v1/authentication/social/begin/<backend>/`)
 
-2.  **Completing Social Login (`/api/v1/authentication/social/complete/<backend>/`):**
-    *   After successful authentication with the social provider, the user is redirected back to this endpoint.
-    *   The `complete_social_authentication` view handles the callback from the social provider.
-    *   It uses the `SocialAuthenticationRule` to either retrieve an existing user or create a new user account based on the social provider's information and the `user_type` from the session.
-    *   Upon successful completion, JWT tokens are generated for the user, and they are logged in.
+```python
+@csrf.csrf_exempt
+@cache.never_cache
+@psa("authentication:social-complete")
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@throttle_classes([AnonRateThrottle])
+def begin_social_authentication(request: Request, backend_name: str) -> Any:
+    user_type = request.query_params.get("user_type", "CLIENT")
+    
+    social_authentication_rule = get_social_authentication_rule()
+    return social_authentication_rule.begin_authentication(request=request)
+```
+
+**Flow Details:**
+- 🌐 **Client Request**: A client initiates social login by making a `GET` request to this endpoint, specifying the social `backend` (e.g., `google-oauth2`)
+- 👤 **User Type Selection**: An optional `user_type` query parameter can be provided (e.g., `?user_type=AGENT`) to pre-select the user's role during registration
+- 🔄 **Provider Redirect**: The `begin_social_authentication` view redirects the user to the social provider's authentication page
+- 💾 **Session Storage**: The `user_type` is stored in the session to be used during the completion phase
+- 🔒 **Security**: CSRF exempt and cache-disabled for OAuth flow compatibility
+
+#### 2. **Completing Social Login** (`/api/v1/authentication/social/complete/<backend>/`)
+
+```python
+@csrf.csrf_exempt
+@cache.never_cache
+@psa("authentication:social-complete")
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@throttle_classes([AnonRateThrottle])
+def complete_social_authentication(request: Request, backend_name: str) -> Response:
+    social_authentication_rule = get_social_authentication_rule()
+    user_dict = social_authentication_rule.complete_authentication(request)
+    
+    user = user_dict["user"]
+    jwt_token_service = get_jwt_token_service()
+    tokens = jwt_token_service.create_tokens(user)
+    response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
+    
+    is_new_user = user_dict["is_new_user"]
+    
+    if is_new_user:
+        return StandardResponse.created(
+            data=response_serializer.data,
+            message="Registration successful. Welcome to Housing & Properties!",
+        )
+    else:
+        return StandardResponse.success(
+            data=response_serializer.data,
+            message="Login successful. Welcome back!",
+        )
+```
+
+**Completion Flow:**
+- 🔄 **Provider Callback**: After successful authentication with the social provider, the user is redirected back to this endpoint
+- 🎭 **User Resolution**: The `complete_social_authentication` view handles the callback from the social provider
+- 🏗️ **User Creation/Retrieval**: Uses the `SocialAuthenticationRule` to either retrieve an existing user or create a new user account based on the social provider's information and the `user_type` from the session
+- 🎫 **Token Generation**: Upon successful completion, JWT tokens are generated for the user
+- ✅ **Response Differentiation**: Returns different success messages based on whether the user is new (registration) or existing (login)
+
+#### 📋 **Social Authentication Pipeline**
+
+Custom pipeline in `apps/authentication/infrastructure/pipelines.py`:
+
+```python
+def create_user(backend, details: Dict[str, Any], user: Any = None, *args, **kwargs) -> Dict[str, Any]:
+    if user:
+        # Existing user - update last login
+        event_publisher.publish(UserUpdateEvent(
+            update_fields={"last_login": datetime.now(tz=UTC)},
+            user_id=user.id,
+        ))
+        return {"user": user, "is_new": False}
+    
+    # New user creation
+    domain_user = DomainUser(
+        email=fields["email"],
+        first_name=fields.get("first_name", ""),
+        last_name=fields.get("last_name", ""),
+        is_email_verified=True,  # Social users are pre-verified
+    )
+    
+    created_user = user_repository.create_social(domain_user)
+    return {"user": created_user, "is_new": True}
+```
+
+**Pipeline Configuration:**
+```python
+SOCIAL_AUTH_PIPELINE = [
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'apps.authentication.infrastructure.pipelines.create_user',  # Custom step
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.user.user_details',
+]
+```
 
 ---
 
 ## 🎫 Token Management System
 
-### 🎯 **Overview**
+### 🎯 **JWT Configuration**
 
-This system uses `djangorestframework-simplejwt` for managing **JSON Web Tokens (JWT)**. It provides a robust, stateless authentication mechanism for the API.
+The system uses `djangorestframework-simplejwt` with the following configuration:
 
-### 🔄 **Token Types**
-- **Access Token**: Short-lived, used for authenticating API requests.
-- **Refresh Tokens**: Long-lived, used to obtain new access tokens when the current one expires.
+```python
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=24),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
+```
 
-### 🔑 **Token Creation**
-Tokens are created upon successful registration or login via `DjangoJWTTokenAdapter.create_tokens`. Custom claims are included in the token payload (e.g., `user_type`, `email`).
+### 🔑 **Token Creation Process**
 
-### 🚫 **Token Blacklisting**
-Upon logout, access tokens are blacklisted using the `BlacklistedToken` model and `TokenBlacklistMiddleware` to prevent their reuse before natural expiry. This is crucial for maintaining security in a stateless JWT system.
+The `DjangoJWTTokenAdapter` handles token generation:
 
-### ⏰ **Token Expiration**
-Token lifetimes are configured in `settings.py` via `SIMPLE_JWT` settings, allowing for fine-grained control over session duration and security.
+```python
+def create_tokens(self, user) -> dict:
+    refresh = RefreshToken.for_user(user)
+    tokens = {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token)
+    }
+    return tokens
+```
+
+### 🚫 **Token Blacklisting Architecture**
+
+- **Middleware Integration**: `TokenBlackListMiddleware` checks every request
+- **Database Storage**: Blacklisted tokens stored with expiry information
+- **Event-Driven**: Async blacklisting via `UserLogoutEvent`
+- **Automatic Cleanup**: Expired blacklisted tokens can be cleaned up periodically
 
 ---
 
 ## 🗄️ Data Model Implementation
 
-This section details the Django ORM models and their relationship to the Domain Layer's dataclasses.
+### 👤 **User Domain Model**
 
-### 👤 **User Model (`apps/authentication/infrastructure/models.py`)**
+```python
+@dataclass(frozen=True)
+class User:
+    email: str
+    password_hash: str | None = field(default=None, repr=False)
+    first_name: str = ""
+    last_name: str = ""
+    user_type: UserType = UserType.CLIENT
+    is_email_verified: bool = False
+    is_active: bool = True
+    is_staff: bool = False
+    is_superuser: bool = False
+    is_new: bool = False
+    id: int | None = None
+    uuid: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    last_login: datetime | None = None
+```
 
-Extends Django's `AbstractUser` to provide a custom user model with:
-- `uuid`: A `UUIDField` (using `uuid6.uuid7`) for public, unique user identification.
-- `email`: `EmailField` set as `unique=True` and `USERNAME_FIELD`.
-- `user_type`: `CharField` with choices from `UserType` enum (CLIENT, AGENT, VENDOR, ADMIN).
-- `is_email_verified`: `BooleanField` to track email verification status.
-- `created_at`, `updated_at`: `DateTimeField` for auditing.
+### 🏷️ **UserType Enum**
 
-Uses a custom `UserManager` (`apps/authentication/infrastructure/managers.py`) for user creation and management.
+```python
+class UserType(Enum):
+    CLIENT = "CLIENT"
+    AGENT = "AGENT"
+    VENDOR = "VENDOR"
+    SERVICE_PROVIDER = "SERVICE_PROVIDER"
+    ADMIN = "ADMIN"
+    
+    @classmethod
+    def choices(cls) -> List[Tuple[str, str]]:
+        return [(member.value, member.name) for member in cls]
+```
 
-### 🚫 **BlacklistedToken Model (`apps/authentication/infrastructure/models.py`)**
+### 🗄️ **Django User Model**
 
-Stores JWT access tokens that have been explicitly invalidated (e.g., during logout) to prevent their reuse.
-- `access`: `TextField` storing the blacklisted JWT, `unique=True`.
-- `user`: `ForeignKey` to the `User` model.
-- `expires_at`: `DateTimeField` indicating when the blacklisted token would have naturally expired.
+```python
+class User(AbstractUser):
+    uuid = models.UUIDField(unique=True, default=uuid6.uuid7, editable=False)
+    username = None  # Removed username field
+    email = models.EmailField(unique=True)
+    user_type = models.CharField(max_length=16, choices=DomainUserType.choices, default=DomainUserType.CLIENT)
+    is_email_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+    
+    objects = UserManager()
+```
 
-Includes a class method `is_blacklisted` for efficient lookup.
+**Key Features:**
+- **UUID7**: Time-ordered UUIDs for better database performance
+- **Email Authentication**: No username required, email is the primary identifier
+- **User Types**: Support for different platform roles
+- **Audit Fields**: Automatic timestamp tracking
 
-### 🎯 **Domain Models (`apps/authentication/domain/models.py`)**
+### 🚫 **BlackListedToken Models**
 
-These are framework-agnostic Python dataclasses representing the core business entities, used by the Application Layer:
-- `User`: Corresponds to the Django `User` model, holding user attributes.
-- `BlackListedToken`: Corresponds to the Django `BlacklistedToken` model.
+**Domain Model:**
+```python
+@dataclass(frozen=True)
+class BlackListedToken:
+    access: str
+    user_id: int
+    expires_at: datetime
+    id: int | None = None
+    created_at: datetime | None = None
+```
+
+**Django Model:**
+```python
+class BlackListedToken(models.Model):
+    access = models.TextField(unique=True)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="blacklisted_tokens")
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "auth_blacklisted_tokens"
+        indexes = [
+            models.Index(fields=["access"]),
+            models.Index(fields=["expires_at"]),
+            models.Index(fields=["user", "expires_at"]),
+        ]
+```
 
 ---
 
 ## ⚙️ Service Layer Architecture
 
-The Infrastructure Layer contains adapters that implement the interfaces (ports) defined in the Domain Layer. These services interact with external frameworks and systems (Django ORM, cache, email, JWT).
+### 🔧 **Infrastructure Adapters**
 
-### 🔑 `DjangoPasswordServiceAdapter` (`apps/authentication/infrastructure/services.py`)
-Implements `PasswordServiceAdapterInterface`.
-- Provides methods for hashing, checking, and validating password complexity (e.g., minimum length, character requirements).
+#### **Password Service**
+```python
+class DjangoPasswordServiceAdapter(PasswordServiceAdapterInterface):
+    def hash(self, password: str) -> str:
+        return make_password(password)
+    
+    def check(self, raw_password: str, hashed_password: str) -> bool:
+        return check_password(raw_password, hashed_password)
+```
 
-### ✅ `DjangoVerificationServiceAdapter` (`apps/authentication/infrastructure/services.py`)
-Implements `VerificationServiceAdapterInterface`.
-- Handles generation of secure verification tokens.
-- Constructs full email verification links using the application's `FROM_DOMAIN`.
+#### **Cache Service**
+```python
+class DjangoCacheServiceAdapter(CacheServiceAdapterInterface):
+    def get(self, key: str) -> Any:
+        return cache.get(key, None)
+    
+    def set(self, key: str, value: Any, timeout: int | None = None) -> None:
+        timeout = timeout or settings.DJANGO_CACHE_TIMEOUT
+        cache.set(key, value, timeout)
+```
 
-### 💾 `DjangoCacheServiceAdapter` (`apps/authentication/infrastructure/services.py`)
-Implements `CacheServiceAdapterInterface`.
-- Provides a thin wrapper around Django's cache framework (e.g., Redis).
-- Used for storing temporary data like email verification tokens with configurable timeouts.
+#### **Email Service**
+```python
+class DjangoEmailServiceAdapter(EmailServiceAdapterInterface):
+    def send_verification_email(self, recipient_email: str, verification_link: str) -> None:
+        context = {
+            "email": recipient_email,
+            "verification_link": verification_link,
+            "expiry_minutes": settings.DJANGO_VERIFICATION_TOKEN_EXPIRY,
+        }
+        self._send_template_email(
+            subject="Verify your email address",
+            template_name="verify_email",
+            context=context,
+            recipient_list=[recipient_email],
+        )
+```
 
-### 📧 `DjangoEmailServiceAdapter` (`apps/authentication/infrastructure/services.py`)
-Implements `EmailServiceAdapterInterface`.
-- Responsible for sending templated emails (e.g., email verification, password reset).
-- Utilizes Django's email backend and template rendering.
+### 🏭 **Factory Pattern for Dependency Injection**
 
-### 🎫 `DjangoJWTTokenAdapter` (`apps/authentication/infrastructure/services.py`)
-Implements `JWTTokenAdapterInterface`.
-- Handles the creation of `access` and `refresh` JWT tokens.
-- Provides functionality to check access token expiry and extract token claims.
+The system uses a factory pattern for dependency management:
 
-### 🔗 `SocialAuthenticationAdapter` (`apps/authentication/infrastructure/services.py`)
-Implements `SocialAuthenticationAdapterInterface`.
-- Integrates with `python-social-auth`'s `do_auth` function to initiate social authentication flows.
-- Passes user type information to the social authentication pipeline.
+```python
+# apps/authentication/infrastructure/factory.py
+def get_register_user_rule():
+    return RegisterUserRule(
+        user_repository=get_user_repository(),
+        password_service=get_password_service(),
+        event_publisher=get_event_publisher(),
+    )
 
-### 🗄️ **Repository Layer Architecture**
+def register_authentication_event_handlers():
+    user_repository = get_user_repository()
+    # ... other dependencies
+    
+    EventBus.subscribe(
+        UserVerificationEmailEvent,
+        lambda event: send_verification_email_event(event, user_repository, ...)
+    )
+```
 
-Repositories are part of the Infrastructure Layer and implement the repository interfaces (ports) defined in the Domain Layer. They abstract data persistence details.
+### 🔄 **Event-Driven Architecture**
 
-### 👥 `DjangoUserRepository` (`apps/authentication/infrastructure/repositories.py`)
-Implements `UserRepositoryInterface`.
-- Provides methods for creating, updating, and retrieving `User` domain models, mapping them to Django ORM `User` instances.
-- Contains the `get_or_create_social` method which integrates with the `python-social-auth` pipeline for social user management.
+#### **Event Bus**
+```python
+class EventBus:
+    _handlers: Dict[Type[DomainEvent], List[Callable[[DomainEvent], None]]] = {}
+    
+    @classmethod
+    def subscribe(cls, event_type: Type[DomainEvent], handler: Callable[[DomainEvent], None]) -> None:
+        if event_type not in cls._handlers:
+            cls._handlers[event_type] = []
+        cls._handlers[event_type].append(handler)
+    
+    @classmethod
+    def publish(cls, event: DomainEvent) -> None:
+        for handler in cls._handlers.get(type(event), []):
+            handler(event)
+```
 
-### 🚫 `DjangoBlackListedTokenRepository` (`apps/authentication/infrastructure/repositories.py`)
-Implements `BlackListedTokenRepositoryInterface`.
-- Handles adding and retrieving `BlackListedToken` domain models, mapping them to Django ORM `BlackListedToken` instances.
+#### **Async Event Publisher**
+```python
+class DjangoEventPublisherAdapter(EventPublisherInterface):
+    def publish(self, event: DomainEvent) -> None:
+        event_data = pickle.dumps(event)
+        _publish_event_to_bus.delay(event_data)  # Celery task
+
+@shared_task
+def _publish_event_to_bus(event_data: bytes) -> None:
+    event = pickle.loads(event_data)
+    EventBus.publish(event)
+```
 
 ---
 
 ## 🌐 API Endpoint Specifications
 
-This section details the primary API endpoints for authentication, including HTTP methods, URLs, and a brief description of their functionality. For full request/response schemas, refer to the auto-generated OpenAPI documentation available via `drf-spectacular` (typically at `/api/schema/` or `/api/docs/swagger/`).
+### 📋 **URL Configuration**
 
-### User Management Endpoints
+**API Structure:**
+```python
+# api/v1/__init__.py
+urlpatterns = [
+    path("authentication/", include("api.v1.authentication")),
+]
 
-*   **`POST /api/v1/authentication/register/`**
-    *   **Description:** Registers a new user with the system. Requires email, password, user type, first name, and last name. Triggers an email verification flow.
-    *   **Authentication:** None (AllowAny)
-    *   **Throttling:** Anonymous rate throttle applies.
+# api/v1/authentication.py
+urlpatterns = [
+    path("register/", register_user, name="register"),
+    path("update-user-type/", update_user_type, name="update-user-type"),
+    path("verify-email/request/", verify_email_request, name="verify-email-request"),
+    path("verify-email/<str:user_uuid>/<str:verification_token>/", verify_email, name="verify-email"),
+    path("login/", login_user, name="login"),
+    path("logout/", logout_user, name="logout"),
+    path(f"social/begin/<str:backend>{extra}", begin_social_authentication, name="social-begin"),
+    path("social/complete/<str:backend>/", complete_social_authentication, name="social-complete"),
+]
+```
 
-*   **`POST /api/v1/authentication/login/`**
-    *   **Description:** Authenticates an existing user with their email and password. Returns JWT access and refresh tokens upon successful login.
-    *   **Authentication:** None (AllowAny)
-    *   **Throttling:** Anonymous rate throttle applies.
+### 🎯 **Endpoint Details**
 
-*   **`POST /api/v1/authentication/logout/`**
-    *   **Description:** Invalidates the provided JWT access token by blacklisting it, effectively logging out the user.
-    *   **Authentication:** JWT (IsAuthenticated)
-    *   **Throttling:** User rate throttle applies.
+#### **User Registration**
+- **URL**: `POST /api/v1/authentication/register/`
+- **Authentication**: None (AllowAny)
+- **Throttling**: AnonRateThrottle (5/min)
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "SecurePass123!",
+    "first_name": "John",
+    "last_name": "Doe"
+  }
+  ```
+- **Response**: JWT tokens + user info + verification message
 
-### Email Verification Endpoints
+#### **User Login**
+- **URL**: `POST /api/v1/authentication/login/`
+- **Authentication**: None (AllowAny)
+- **Throttling**: AnonRateThrottle (5/min)
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }
+  ```
 
-*   **`POST /api/v1/authentication/verify-email/request/`**
-    *   **Description:** Requests a new email verification link to be sent to the provided email address.
-    *   **Authentication:** None (AllowAny)
-    *   **Throttling:** Anonymous rate throttle applies.
+#### **User Logout**
+- **URL**: `POST /api/v1/authentication/logout/`
+- **Authentication**: JWT Required (IsAuthenticated)
+- **Throttling**: UserRateThrottle (10/min)
+- **Request Body**:
+  ```json
+  {
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  }
+  ```
 
-*   **`POST /api/v1/authentication/verify-email/<str:user_uuid>/<str:verification_token>/`**
-    *   **Description:** Verifies a user's email address using the UUID and verification token received via email.
-    *   **Authentication:** None (AllowAny)
-    *   **Throttling:** Anonymous rate throttle applies.
+#### **Email Verification Request**
+- **URL**: `POST /api/v1/authentication/verify-email/request/`
+- **Authentication**: None (AllowAny)
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com"
+  }
+  ```
 
-### Social Authentication Endpoints
+#### **Email Verification**
+- **URL**: `POST /api/v1/authentication/verify-email/{user_uuid}/{verification_token}/`
+- **Authentication**: None (AllowAny)
+- **URL Parameters**: User UUID and verification token from email
 
-*   **`GET /api/v1/authentication/social/begin/<backend>/`**
-    *   **Description:** Initiates the social authentication process for a specified backend (e.g., `google-oauth2`). Redirects the user to the social provider's authentication page.
-    *   **Query Parameters:**
-        *   `user_type` (optional): Specifies the desired user type (e.g., `AGENT`, `CLIENT`) for new registrations via social login.
-    *   **Authentication:** None (AllowAny)
-    *   **Throttling:** Anonymous rate throttle applies.
+#### **User Type Update**
+- **URL**: `PUT /api/v1/authentication/update-user-type/`
+- **Authentication**: JWT Required
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "user_type": "AGENT"
+  }
+  ```
 
-*   **`GET /api/v1/authentication/social/complete/<backend>/`**
-    *   **Description:** Handles the callback from the social authentication provider. Completes the social login/registration and issues JWT tokens.
-    *   **Authentication:** None (AllowAny)
-    *   **Throttling:** Anonymous rate throttle applies.
+### 📊 **Standard Response Format**
+
+All endpoints use the `StandardResponse` pattern:
+
+```python
+# Success Response
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... },
+  "status_code": 200
+}
+
+# Error Response
+{
+  "success": false,
+  "message": "Error occurred",
+  "error": {
+    "detail": "Specific error details"
+  },
+  "status_code": 400
+}
+```
 
 ---
 
 ## 🔒 Security Measures and Validation
 
-### 🎯 **Password Validation**
-- Enforced through `DjangoPasswordServiceAdapter`, including checks for length, uppercase, lowercase, digits, and special characters.
+### 🛡️ **Password Security**
 
-### 🛡️ **JWT Security**
-- **Stateless Tokens**: Reduces server load and simplifies scaling.
-- **Token Blacklisting**: Prevents reuse of invalidated access tokens.
-- **Configurable Lifetimes**: Access and refresh token validity periods are configurable (`settings.SIMPLE_JWT`).
+The `UserRegistrationSerializer` implements comprehensive password validation:
 
-### 📧 **Email Verification**
-- **Token-based verification** with cache-based, time-limited tokens to prevent brute-force attacks and ensure email ownership.
-- **Unique links** per user for verification.
+```python
+def validate_password(self, value: str) -> str:
+    if " " in value:
+        raise serializers.ValidationError("Password must not contain spaces.")
+    
+    if not re.search(r"[A-Z]", value):
+        raise serializers.ValidationError("Password must contain at least one uppercase letter.")
+    
+    if not re.search(r"[a-z]", value):
+        raise serializers.ValidationError("Password must contain at least one lowercase letter.")
+    
+    if not re.search(r"\d", value):
+        raise serializers.ValidationError("Password must contain at least one digit.")
+    
+    if not re.search(r"[!@#$%^&*(),.?\"'{}|<>]", value):
+        raise serializers.ValidationError("Password must contain at least one special character.")
+    
+    return value
+```
 
-### ⚙️ **Rate Limiting**
-- Implemented using DRF's `AnonRateThrottle` and `UserRateThrottle` to prevent abuse of API endpoints (e.g., registration, login).
+### 🚫 **Rate Limiting**
 
-### ❌ **Error Handling Security**
-- **Generic error messages** for internal server errors (`HTTP 500`) to avoid leaking sensitive system information.
-- Specific, actionable error messages for `4xx` client errors.
+Configured in `REST_FRAMEWORK` settings:
+- **Anonymous**: 5 requests/minute
+- **Authenticated**: 10 requests/minute
+- Applied per view using `@throttle_classes` decorator
+
+### 🔐 **JWT Security Features**
+
+- **Token Rotation**: Refresh tokens are rotated on renewal
+- **Blacklisting**: Immediate token invalidation on logout
+- **Short Lifetimes**: 30-minute access tokens, 24-hour refresh tokens
+- **Secure Signing**: HMAC-SHA256 with Django SECRET_KEY
+
+### 📧 **Email Verification Security**
+
+- **Cryptographic Tokens**: 32-byte URL-safe tokens using `secrets` module
+- **Time-Limited**: 15-minute expiration with automatic cleanup
+- **UUID Validation**: Cross-references user UUID to prevent token misuse
+- **Cache-Based**: No database storage of temporary verification data
+
+### 🛡️ **Middleware Protection**
+
+```python
+class TokenBlackListMiddleware(MiddlewareMixin):
+    def process_request(self, request: Request) -> None:
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Bearer "):
+            access_token = auth_header.split(" ")[1]
+            
+            if self.blacklisted_token_repository.exists(access_token):
+                request.META["HTTP_AUTHORIZATION"] = ""
+                logger.warning(f"Blacklisted token attempted to access {request.path}")
+```
 
 ---
 
 ## ❌ Error Handling Framework
 
-The project implements a centralized and robust exception handling mechanism via the `hp_exception_handler` function (configured as `REST_FRAMEWORK`'s `EXCEPTION_HANDLER` in `settings.py`). This handler ensures consistent API error responses and appropriate logging.
+### 🎯 **Centralized Exception Handling**
 
-### 🎯 **Key Principles**
-- **Standardized Response Format**: All error responses adhere to a consistent JSON structure (e.g., `{"success": False, "message": "...", "error": {"detail": "..."}, "status_code": ...}`).
-- **Specific Client Errors (4xx)**: Anticipated errors (e.g., validation failures, business rule violations, conflicts) are mapped to appropriate `4xx` HTTP status codes with informative messages for the user.
-  - `ValidationError` (DRF): Handled for serializer validation issues.
-  - `IntegrityError` (Django ORM): Converted to `ConflictError` (`HTTP 409`) for database constraint violations.
-  - `ParseError` (DRF): Converted to `UnprocessableEntityError` (`HTTP 422`) for malformed request bodies.
-  - `BusinessRuleException` (Custom): Converted to `BadRequestError` (`HTTP 400`) for application-level business logic failures.
-- **Generic Server Errors (5xx)**: Unexpected Python or Django exceptions are caught and transformed into a generic `HTTP 500 Internal Server Error` response for the user, preventing sensitive internal details from being exposed.
-  - Explicitly handles `TypeError`, `AttributeError`, `KeyError`, and `IndexError`.
-  - Catches any other unexpected `Exception` that isn't a known `APIException`.
-- **Detailed Logging**: All unexpected server-side errors are logged with full tracebacks at an `ERROR` level, providing comprehensive details for developers to debug and resolve issues.
-- **Security-Aware Messages**: Sensitive internal information is suppressed from user-facing error messages.
+The `hp_exception_handler` in `core/infrastructure/exceptions/handler.py` provides consistent error responses:
+
+```python
+def hp_exception_handler(exc: Exception, context: Dict[str, Any]) -> Response | None:
+    # Convert Django/DRF exceptions to standardized format
+    if isinstance(exc, DjangoValidationError):
+        exc = ValidationError(detail=exc.message_dict if hasattr(exc, "message_dict") else exc.messages)
+    elif isinstance(exc, IntegrityError):
+        logger.exception(f"Unhandled database constraint error: {exc}")
+        exc = ConflictError()
+    elif isinstance(exc, BusinessRuleException):
+        exc = BadRequestError(detail=str(exc))
+    
+    # Return standardized error response
+    response_data = {
+        "success": False,
+        "message": "An error occurred.",
+        "error": {},
+        "status_code": None,
+    }
+    # ... handle specific exception types
+```
+
+### 📊 **Business Rule Exceptions**
+
+```python
+class BusinessRuleException(Exception):
+    """Base exception for business rule violations"""
+    pass
+
+# Usage in application rules
+if not user or not self._password_service.check(password, user.password_hash):
+    raise BusinessRuleException("Login failed. Provided email or password is invalid.")
+```
+
+### 🔍 **Error Response Normalization**
+
+The handler normalizes various error types into a consistent format:
+
+```python
+def normalize_error_detail(detail: Any) -> str | List[str] | Dict[str, Any]:
+    if isinstance(detail, dict):
+        normalized = {}
+        for key, value in detail.items():
+            if hasattr(value, "__iter__") and not isinstance(value, str):
+                # Handle field validation errors
+                normalized[key] = str(value[0]).replace("This field", key.title()) if len(value) == 1 else [str(v) for v in value]
+            else:
+                normalized[key] = str(value)
+        return normalized
+    # ... handle other types
+```
+
+---
 
 ## ⚙️ Configuration and Settings
 
-### 🎯 **Overview**
-The project uses `django-environ` for managing environment variables and provides modular settings files for different deployment environments. Authentication-specific configurations are primarily managed in `config/settings/base.py`, with environment-specific overrides in `development.py` and `production.py`.
+### 🎛️ **Modular Settings Architecture**
 
-### 📋 **Key Settings and Environment Variables**
+The project uses environment-based settings:
 
-The following settings and environment variables are crucial for the authentication module's operation:
+```python
+# config/settings/__init__.py
+ENVIRONMENT = env.str("DJANGO_ENVIRONMENT", default="development")
 
-*   **Django Core Settings:**
-    *   `SECRET_KEY`: A highly sensitive, randomly generated key. **Essential for security.**
-    *   `DEBUG`: Controls debugging mode. Should be `False` in production.
-    *   `ALLOWED_HOSTS`: List of host/domain names that this Django site can serve.
-    *   `INSTALLED_APPS`: Includes `oauth2_provider`, `social_django`, `drf_social_oauth2`, `apps.authentication`, and `apps.users` for their respective functionalities.
-    *   `MIDDLEWARE`: `apps.authentication.infrastructure.middleware.TokenBlackListMiddleware` is registered to enforce JWT token blacklisting.
-    *   `AUTH_USER_MODEL`: Set to `users.User`, indicating the custom user model.
-    *   `AUTHENTICATION_BACKENDS`: Configured to include `django.contrib.auth.backends.ModelBackend` for email/password authentication and `social_core.backends.google.GoogleOAuth2` for Google social login.
+if ENVIRONMENT == "production":
+    from config.settings.production import *
+elif ENVIRONMENT == "test":
+    from config.settings.test import *
+else:
+    from config.settings.development import *
+```
 
-*   **Email Configuration:**
-    *   `DEFAULT_FROM_EMAIL`: The default sender email address for outgoing emails (e.g., verification emails).
-    *   `EMAIL_BACKEND`: Specifies the email backend to use (e.g., console for development, SMTP for production).
-    *   `FROM_DOMAIN`: The base URL of your API, used to construct absolute verification links in emails.
-    *   `DJANGO_VERIFICATION_TOKEN_EXPIRY`: An integer representing the expiry time in minutes for email verification tokens.
+### 🔧 **Core Authentication Settings**
 
-*   **Caching Configuration:**
-    *   `DJANGO_CACHE_TIMEOUT`: The default timeout in seconds for cache entries (used for email verification tokens).
-    *   `CACHES`: Defines the cache backends. Default uses `LocMemCache` for development, but can be configured for Redis (`django-redis`) in production.
+```python
+# JWT Configuration
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=24),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
 
-*   **Django REST Framework (DRF) Settings:**
-    *   `DEFAULT_AUTHENTICATION_CLASSES`: Set to `rest_framework_simplejwt.authentication.JWTAuthentication` for token-based authentication.
-    *   `DEFAULT_THROTTLE_CLASSES` & `DEFAULT_THROTTLE_RATES`: Configures rate limiting for anonymous and authenticated users to prevent abuse.
-    *   `EXCEPTION_HANDLER`: Points to `core.infrastructure.exceptions.hp_exception_handler` for standardized error responses.
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'social_core.backends.google.GoogleOAuth2',
+]
 
-*   **DRF Spectacular (OpenAPI) Settings:**
-    *   `SPECTACULAR_SETTINGS`: Configures the API documentation generation, including title, description, version, and UI settings.
+# Custom User Model
+AUTH_USER_MODEL = 'users.User'
+```
 
-*   **Simple JWT Settings (`SIMPLE_JWT`):**
-    *   `ACCESS_TOKEN_LIFETIME`: Defines the validity period for access tokens (e.g., `timedelta(minutes=30)`).
-    *   `REFRESH_TOKEN_LIFETIME`: Defines the validity period for refresh tokens (e.g., `timedelta(hours=24)`).
-    *   `ROTATE_REFRESH_TOKENS`: `True` enables rotation of refresh tokens upon renewal.
-    *   `BLACKLIST_AFTER_ROTATION`: `True` ensures old refresh tokens are blacklisted after new ones are issued.
-    *   `ALGORITHM`, `SIGNING_KEY`, `AUTH_HEADER_TYPES`, `USER_ID_FIELD`, `USER_ID_CLAIM`, `AUTH_TOKEN_CLASSES`: Standard JWT configurations.
+### 📧 **Email Configuration**
 
-*   **Social Authentication Settings (Python Social Auth):**
-    *   `SOCIAL_AUTH_USER_MODEL`: Specifies the Django user model to be used with social authentication (`users.User`).
-    *   `SOCIAL_AUTH_JSONFIELD_ENABLED`: Enables JSONField for storing extra data from social providers.
-    *   `SOCIAL_AUTH_REDIRECT_IS_HTTPS`: Ensures redirects for social authentication are over HTTPS.
-    *   `SOCIAL_AUTH_PIPELINE`: Defines the sequence of steps for processing social authentication, including custom steps like `apps.authentication.infrastructure.pipelines.create_user` for user creation/linking.
-    *   `SOCIAL_AUTH_GOOGLE_OAUTH2_KEY`, `SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET`: Your Google OAuth2 client ID and secret. **These must be set as environment variables in production.**
+```python
+# Email Settings
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@housingandproperties.com")
+EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+
+# Production Email (when EMAIL_BACKEND is SMTP)
+EMAIL_HOST = env.str("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
+```
+
+### 💾 **Cache Configuration**
+
+```python
+# Redis Cache for Production
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env.str("REDIS_URL", default="redis://localhost:6379/0"),
+    }
+}
+
+# Cache Timeouts
+DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)  # 15 minutes
+DJANGO_VERIFICATION_TOKEN_EXPIRY = env.int("DJANGO_VERIFICATION_TOKEN_EXPIRY", default=15)  # minutes
+```
+
+### 🔗 **Social Authentication Setup**
+
+```python
+# Google OAuth2
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env.str("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY", default="")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env.str("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET", default="")
+SOCIAL_AUTH_GOOGLE_OAUTH2_USER_FIELDS = ["email", "first_name", "last_name"]
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["email", "profile"]
+
+# Social Auth Pipeline
+SOCIAL_AUTH_PIPELINE = [
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'apps.authentication.infrastructure.pipelines.create_user',  # Custom pipeline step
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.user.user_details',
+]
+```
+
+### ⚡ **Celery Configuration**
+
+```python
+# Celery for Async Tasks
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+```
+
+### 🛡️ **Security Settings**
+
+Production-specific security configurations:
+
+```python
+# Production Security
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+```
 
 ---
+
+This documentation reflects the actual implementation of the Housing & Properties authentication system, providing a comprehensive guide to its architecture, features, and configuration.

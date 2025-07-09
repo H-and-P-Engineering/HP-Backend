@@ -3,20 +3,11 @@ from datetime import datetime
 from typing import Any, Dict
 from uuid import UUID
 
-from apps.authentication.domain.models import BlackListedToken
-
-
-class BlackListedTokenRepositoryInterface(ABC):
-    @abstractmethod
-    def add(self, blacklisted_token: BlackListedToken) -> BlackListedToken:
-        pass
+from apps.authentication.domain.models import BlackListedToken as DomainBlackListedToken
+from apps.users.domain.models import User as DomainUser
 
 
 class PasswordServiceAdapterInterface(ABC):
-    @abstractmethod
-    def validate(self, password: str) -> None:
-        pass
-
     @abstractmethod
     def hash(self, password: str) -> str:
         pass
@@ -26,15 +17,13 @@ class PasswordServiceAdapterInterface(ABC):
         pass
 
 
-class VerificationServiceAdapterInterface(ABC):
+class JWTTokenAdapterInterface(ABC):
     @abstractmethod
-    def generate_token(self) -> str:
+    def create_tokens(self, user: ...) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    def generate_email_verification_link(
-        self, user_uuid: UUID, verification_token: str
-    ) -> str:
+    def check_access_token_expiry(self, access_token: str) -> datetime:
         pass
 
 
@@ -60,17 +49,39 @@ class EmailServiceAdapterInterface(ABC):
         pass
 
 
-class JWTTokenAdapterInterface(ABC):
+class VerificationServiceAdapterInterface(ABC):
     @abstractmethod
-    def create_tokens(self, user: ...) -> Dict[str, Any]:
+    def generate_token(self) -> str:
         pass
 
     @abstractmethod
-    def check_access_token_expiry(self, access_token: str) -> datetime:
+    def generate_email_verification_link(
+        self, user_uuid: UUID, verification_token: str
+    ) -> str:
+        pass
+
+
+class BlackListedTokenRepositoryInterface(ABC):
+    @abstractmethod
+    def add(self, blacklisted_token: DomainBlackListedToken) -> DomainBlackListedToken:
+        pass
+
+    @abstractmethod
+    def exists(self, jti: str) -> bool:
         pass
 
 
 class SocialAuthenticationAdapterInterface(ABC):
     @abstractmethod
-    def begin(self, request: Any, user_type: str) -> Any:
+    def begin(self, request: Any) -> Any:
+        pass
+
+    @abstractmethod
+    def get_or_create_social(self, request: Any) -> Dict[str, DomainUser | bool]:
+        pass
+
+
+class EventPublisherInterface(ABC):
+    @abstractmethod
+    def publish(self, event: Any) -> None:
         pass

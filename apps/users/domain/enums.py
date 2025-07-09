@@ -1,8 +1,8 @@
-from enum import StrEnum
+from enum import Enum
 from typing import List, Tuple
 
 
-class UserType(StrEnum):
+class UserType(Enum):
     CLIENT = "CLIENT"
     AGENT = "AGENT"
     VENDOR = "VENDOR"
@@ -11,8 +11,8 @@ class UserType(StrEnum):
 
     @classmethod
     def choices(cls) -> List[Tuple[str, str]]:
-        return [(tag.value, tag.name) for tag in cls]
+        return [(member.value, member.name) for member in cls]
 
     @classmethod
     def values(cls) -> List[str]:
-        return [tag.value for tag in cls]
+        return [member.value for member in cls]

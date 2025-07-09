@@ -161,10 +161,8 @@ FROM_DOMAIN = env.str("FROM_DOMAIN", default="http://127.0.0.1:8000")
 DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)
 CACHES = {
     "default": {
-        "BACKEND": env.str(
-            "DJANGO_CACHE_BACKEND",
-            default="django.core.cache.backends.locmem.LocMemCache",
-        ),
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env.str("REDIS_URL", default="redis://localhost:6379/0"),
     }
 }
 
@@ -207,3 +205,11 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env.str(
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_USER_FIELDS = ["email", "first_name", "last_name"]
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["email", "profile"]
+
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env.str(
+    "CELERY_RESULT_BACKEND", default="redis://localhost:6379/0"
+)
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"

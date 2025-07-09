@@ -10,7 +10,15 @@ services:
       - "8000:8000"
     env_file:
       - .env
-
+  celery:
+    build: .
+    command: uv run celery -A core.infrastructure.celery.app worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - web
 volumes:
   static_files:
   media_files:

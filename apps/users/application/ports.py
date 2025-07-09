@@ -1,26 +1,26 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
-from apps.users.domain.models import User
+from apps.users.domain.models import User as DomainUser
+from typing import Any
 
 
 class UserRepositoryInterface(ABC):
     @abstractmethod
-    def create(self, user: User) -> User:
+    def create(self, user: DomainUser) -> DomainUser:
         pass
 
     @abstractmethod
-    def update(self, user: User, **kwargs) -> User:
+    def create_social(self, user: DomainUser) -> Any:
         pass
 
     @abstractmethod
-    def get_by_id(self, id: int) -> User:
+    def update(self, user: DomainUser, return_raw: bool = True, **kwargs) -> DomainUser:
         pass
 
     @abstractmethod
-    def get_by_email(self, email: str) -> User:
+    def get_by_id(self, user_id: int) -> DomainUser | None:
         pass
 
     @abstractmethod
-    def get_or_create_social(self, request: Any) -> User:
+    def get_by_email(self, email: str) -> DomainUser | None:
         pass

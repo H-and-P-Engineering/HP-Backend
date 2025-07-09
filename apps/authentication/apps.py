@@ -7,4 +7,8 @@ class AuthenticationConfig(AppConfig):
     verbose_name = "Authentication"
 
     def ready(self) -> None:
-        pass
+        from apps.authentication.infrastructure.factory import (
+            register_authentication_event_handlers,
+        )
+
+        register_authentication_event_handlers()

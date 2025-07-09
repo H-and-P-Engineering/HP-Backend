@@ -2,19 +2,21 @@ from django.urls import path
 from social_django.urls import extra
 
 from apps.authentication.presentation.views import (
-    begin_social_authentication,
-    complete_social_authentication,
+    register_user,
+    update_user_type,
+    verify_email_request,
+    verify_email,
     login_user,
     logout_user,
-    register_user,
-    verify_email,
-    verify_email_request,
+    begin_social_authentication,
+    complete_social_authentication,
 )
 
 app_name = "authentication"
 
 urlpatterns = [
     path("register/", register_user, name="register"),
+    path("update-user-type/", update_user_type, name="update-user-type"),
     path("verify-email/request/", verify_email_request, name="verify-email-request"),
     path(
         "verify-email/<str:user_uuid>/<str:verification_token>/",

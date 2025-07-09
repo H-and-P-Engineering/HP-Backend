@@ -1,12 +1,11 @@
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from functools import partial
+from dataclasses import dataclass
+from datetime import datetime
 
 
-@dataclass
+@dataclass(frozen=True)
 class BlackListedToken:
-    access: str = field(repr=False)
+    access: str
     user_id: int
     expires_at: datetime
     id: int | None = None
-    created_at: datetime = field(default_factory=partial(datetime.now, UTC))
+    created_at: datetime | None = None

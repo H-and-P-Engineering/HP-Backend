@@ -1,6 +1,5 @@
 from typing import Any
 
-from django.db import transaction
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -10,33 +9,24 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from social_django.utils import psa
 
-from apps.authentication.application.rules import (
-    LoginUserRule,
-    LogoutUserRule,
-    RegisterUserRule,
-    RequestEmailVerificationRule,
-    SocialAuthenticationRule,
-    VerifyEmailRule,
-)
-from apps.authentication.infrastructure.repositories import (
-    DjangoBlackListedTokenRepository,
-)
-from apps.authentication.infrastructure.services import (
-    DjangoCacheServiceAdapter,
-    DjangoEmailServiceAdapter,
-    DjangoJWTTokenAdapter,
-    DjangoPasswordServiceAdapter,
-    DjangoVerificationServiceAdapter,
-    SocialAuthenticationAdapter,
+from apps.authentication.infrastructure.factory import (
+    get_jwt_token_service,
+    get_login_user_rule,
+    get_logout_user_rule,
+    get_register_user_rule,
+    get_request_email_verification_rule,
+    get_social_authentication_rule,
+    get_update_user_type_rule,
+    get_verify_email_rule,
 )
 from apps.authentication.presentation.serializers import (
     EmailVerificationRequestSerializer,
     JWTTokenSerializer,
+    UpdateUserTypeSerializer,
     UserLoginSerializer,
     UserLogoutSerializer,
     UserRegistrationSerializer,
 )
-from apps.users.infrastructure.repositories import DjangoUserRepository
 from core.presentation.responses import StandardResponse
 from core.presentation.serializers import (
     ErrorResponseExampleSerializer,
@@ -60,26 +50,12 @@ from core.presentation.serializers import (
 def register_user(request: Request) -> Response:
     serializer = UserRegistrationSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
     validated_data = serializer.validated_data
 
-    user_repository = DjangoUserRepository()
-    password_service = DjangoPasswordServiceAdapter()
-    verification_service = DjangoVerificationServiceAdapter()
-    cache_service = DjangoCacheServiceAdapter()
-    email_service = DjangoEmailServiceAdapter()
-    jwt_token_service = DjangoJWTTokenAdapter()
+    register_user_rule = get_register_user_rule()
+    user = register_user_rule.execute(**validated_data)
 
-    register_user_rule = RegisterUserRule(user_repository, password_service)
-
-    request_email_verification_rule = RequestEmailVerificationRule(
-        verification_service, cache_service, email_service
-    )
-
-    with transaction.atomic():
-        user = register_user_rule.execute(**validated_data)
-        request_email_verification_rule.execute(user)
-
+    jwt_token_service = get_jwt_token_service()
     tokens = jwt_token_service.create_tokens(user)
 
     response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
@@ -87,6 +63,32 @@ def register_user(request: Request) -> Response:
     return StandardResponse.created(
         data=response_serializer.data,
         message="Registration successful. Check your email for a verification link.",
+    )
+
+
+@extend_schema(
+    request=UpdateUserTypeSerializer,
+    responses={
+        201: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Update user tye for a registered user.",
+    tags=["Authentication"],
+)
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def update_user_type(request: Request) -> Response:
+    serializer = UpdateUserTypeSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    validated_data = serializer.validated_data
+
+    user_type_update_rule = get_update_user_type_rule()
+    user_type_update_rule.execute(**validated_data)
+
+    return StandardResponse.updated(
+        message="User Type update successful.",
     )
 
 
@@ -107,20 +109,8 @@ def verify_email_request(request: Request) -> Response:
     serializer = EmailVerificationRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    validated_data = serializer.validated_data
-
-    user_repository = DjangoUserRepository()
-    verification_service = DjangoVerificationServiceAdapter()
-    cache_service = DjangoCacheServiceAdapter()
-    email_service = DjangoEmailServiceAdapter()
-
-    request_email_verification_rule = RequestEmailVerificationRule(
-        verification_service, cache_service, email_service
-    )
-
-    user = user_repository.get_by_email(**validated_data)
-
-    request_email_verification_rule.execute(user)
+    request_email_verification_rule = get_request_email_verification_rule()
+    request_email_verification_rule.execute(email=serializer.validated_data["email"])
 
     return StandardResponse.success(
         message="A new verification link has been sent to your email."
@@ -141,15 +131,7 @@ def verify_email_request(request: Request) -> Response:
 @permission_classes([AllowAny])
 @throttle_classes([AnonRateThrottle])
 def verify_email(request: Request, user_uuid: str, verification_token: str) -> Response:
-    user_repository = DjangoUserRepository()
-    email_service = DjangoEmailServiceAdapter()
-    verification_service = DjangoVerificationServiceAdapter()
-    cache_service = DjangoCacheServiceAdapter()
-
-    verify_email_rule = VerifyEmailRule(
-        user_repository, email_service, verification_service, cache_service
-    )
-
+    verify_email_rule = get_verify_email_rule()
     verify_email_rule.execute(user_uuid, verification_token)
 
     return StandardResponse.success(
@@ -173,20 +155,12 @@ def verify_email(request: Request, user_uuid: str, verification_token: str) -> R
 def login_user(request: Request) -> Response:
     serializer = UserLoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
     validated_data = serializer.validated_data
 
-    user_repository = DjangoUserRepository()
-    password_service = DjangoPasswordServiceAdapter()
-    jwt_token_service = DjangoJWTTokenAdapter()
-
-    login_user_rule = LoginUserRule(
-        user_repository,
-        password_service,
-    )
-
+    login_user_rule = get_login_user_rule()
     user = login_user_rule.execute(**validated_data)
 
+    jwt_token_service = get_jwt_token_service()
     tokens = jwt_token_service.create_tokens(user)
 
     response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
@@ -213,16 +187,9 @@ def login_user(request: Request) -> Response:
 def logout_user(request: Request) -> Response:
     serializer = UserLogoutSerializer(data=request.data, context={"user": request.user})
     serializer.is_valid(raise_exception=True)
-
     validated_data = serializer.validated_data
 
-    blacklisted_token_repository = DjangoBlackListedTokenRepository()
-    jwt_token_service = DjangoJWTTokenAdapter()
-
-    logout_user_rule = LogoutUserRule(
-        blacklisted_token_repository,
-        jwt_token_service,
-    )
+    logout_user_rule = get_logout_user_rule()
     logout_user_rule.execute(**validated_data)
 
     return StandardResponse.success(message="Logout successful.")
@@ -247,13 +214,9 @@ def logout_user(request: Request) -> Response:
 def begin_social_authentication(request: Request, backend_name: str) -> Any:
     user_type = request.query_params.get("user_type", "CLIENT")
 
-    social_authentication_service = SocialAuthenticationAdapter()
-
-    social_authentication_rule = SocialAuthenticationRule(
-        social_authentication_service=social_authentication_service
-    )
+    social_authentication_rule = get_social_authentication_rule()
     return social_authentication_rule.begin_authentication(
-        request=request, user_type=user_type
+        request=request
     )
 
 
@@ -274,22 +237,16 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
 @permission_classes([AllowAny])
 @throttle_classes([AnonRateThrottle])
 def complete_social_authentication(request: Request, backend_name: str) -> Response:
-    social_authentication_service = SocialAuthenticationAdapter()
-    user_repository = DjangoUserRepository()
-    jwt_token_service = DjangoJWTTokenAdapter()
+    social_authentication_rule = get_social_authentication_rule()
 
-    social_authentication_rule = SocialAuthenticationRule(
-        social_authentication_service=social_authentication_service,
-        user_repository=user_repository,
-    )
+    user_dict = social_authentication_rule.complete_authentication(request)
+    user = user_dict["user"]
 
-    user = social_authentication_rule.complete_authentication(request)
-
+    jwt_token_service = get_jwt_token_service()
     tokens = jwt_token_service.create_tokens(user)
-
     response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
 
-    is_new_user = getattr(user, "is_new")
+    is_new_user = user_dict["is_new_user"]
 
     if is_new_user:
         return StandardResponse.created(
