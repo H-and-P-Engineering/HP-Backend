@@ -122,8 +122,9 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "core.infrastructure.exceptions.hp_exception_handler",
 }
 
-CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
+# CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Housing & Properties API",
