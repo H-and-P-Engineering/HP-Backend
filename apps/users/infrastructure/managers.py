@@ -30,6 +30,10 @@ class UserManager(BaseUserManager):
                 raise ConflictError(
                     "User creation failed. User with provided email already exists."
                 ) from e
+            elif "unique_phone_number_constraint" in str(e):
+                raise ConflictError(
+                    "User creation failed. User with provided phone number already exists."
+                ) from e
 
             logger.error(f"Integrity error during user creation for '{email}': {e}")
             raise ConflictError from e
