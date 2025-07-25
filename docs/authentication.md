@@ -89,8 +89,14 @@ The `UserRegistrationSerializer` validates incoming data with **strict validatio
 class UserRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
+    user_type = serializers.ChoiceField(
+        allow_blank=True,
+        choices=DomainUserType.choices(),
+        default=DomainUserType.CLIENT,
+    )
     first_name = serializers.CharField(required=True, max_length=30)
     last_name = serializers.CharField(required=True, max_length=30)
+    phone_number = serializers.CharField(required=True, max_length=20)
 ```
 
 #### 🛡️ **Advanced Password Validation**
@@ -112,7 +118,8 @@ The `RegisterUserRule` orchestrates the registration process:
 4. **Event Publishing**: Triggers `UserVerificationEmailEvent` for async email sending
 
 ```python
-def execute(self, email: str, password: str, first_name: str, last_name: str) -> DomainUser:
+def execute(self, email: str, password: str, first_name: str, last_name: str, 
+           phone_number: str, user_type: str) -> DomainUser:
     password_hash = self._password_service.hash(password)
     
     user = DomainUser(
@@ -120,6 +127,9 @@ def execute(self, email: str, password: str, first_name: str, last_name: str) ->
         password_hash=password_hash,
         first_name=first_name,
         last_name=last_name,
+        phone_number=phone_number,
+        user_type=DomainUserType(user_type.upper()),
+        is_new=True,
     )
     
     created_user = self._user_repository.create(user)
@@ -264,6 +274,14 @@ class BlackListedToken(models.Model):
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        db_table = "auth_blacklisted_tokens"
+        indexes = [
+            models.Index(fields=["access"]),
+            models.Index(fields=["expires_at"]),
+            models.Index(fields=["user", "expires_at"]),
+        ]
+    
     @classmethod
     def is_blacklisted(cls, access_token: str) -> bool:
         return cls.objects.filter(access=access_token).exists()
@@ -292,7 +310,10 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
     user_type = request.query_params.get("user_type", "CLIENT")
     
     social_authentication_rule = get_social_authentication_rule()
-    return social_authentication_rule.begin_authentication(request=request)
+    return social_authentication_rule.begin_authentication(
+        request=request,
+        user_type=user_type,
+    )
 ```
 
 **Flow Details:**
@@ -313,14 +334,13 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
 @throttle_classes([AnonRateThrottle])
 def complete_social_authentication(request: Request, backend_name: str) -> Response:
     social_authentication_rule = get_social_authentication_rule()
-    user_dict = social_authentication_rule.complete_authentication(request)
+    user = social_authentication_rule.complete_authentication(request)
     
-    user = user_dict["user"]
     jwt_token_service = get_jwt_token_service()
     tokens = jwt_token_service.create_tokens(user)
     response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
     
-    is_new_user = user_dict["is_new_user"]
+    is_new_user = user.is_new
     
     if is_new_user:
         return StandardResponse.created(
@@ -347,6 +367,9 @@ Custom pipeline in `apps/authentication/infrastructure/pipelines.py`:
 
 ```python
 def create_user(backend, details: Dict[str, Any], user: Any = None, *args, **kwargs) -> Dict[str, Any]:
+    user_repository = get_user_repository()
+    event_publisher = get_event_publisher()
+
     if user:
         # Existing user - update last login
         event_publisher.publish(UserUpdateEvent(
@@ -356,14 +379,36 @@ def create_user(backend, details: Dict[str, Any], user: Any = None, *args, **kwa
         return {"user": user, "is_new": False}
     
     # New user creation
+    user_type = kwargs.get("user_type")
+    
+    fields = {
+        name: kwargs.get(name, details.get(name))
+        for name in backend.setting("USER_FIELDS", USER_FIELDS)
+    }
+    
+    if not fields:
+        return
+    
+    fields["is_email_verified"] = True
+    fields["user_type"] = user_type
+    
     domain_user = DomainUser(
         email=fields["email"],
         first_name=fields.get("first_name", ""),
         last_name=fields.get("last_name", ""),
-        is_email_verified=True,  # Social users are pre-verified
+        is_email_verified=fields["is_email_verified"],
     )
     
     created_user = user_repository.create_social(domain_user)
+    
+    event_publisher.publish(UserUpdateEvent(
+        update_fields={
+            "is_email_verified": True,
+            "last_login": datetime.now(tz=UTC),
+        },
+        user_id=created_user.id,
+    ))
+    
     return {"user": created_user, "is_new": True}
 ```
 
@@ -431,12 +476,13 @@ def create_tokens(self, user) -> dict:
 ### 👤 **User Domain Model**
 
 ```python
-@dataclass(frozen=True)
+@dataclass
 class User:
     email: str
     password_hash: str | None = field(default=None, repr=False)
     first_name: str = ""
     last_name: str = ""
+    phone_number: str = ""  # Note: Can be null/empty in Django model
     user_type: UserType = UserType.CLIENT
     is_email_verified: bool = False
     is_active: bool = True
@@ -463,6 +509,10 @@ class UserType(Enum):
     @classmethod
     def choices(cls) -> List[Tuple[str, str]]:
         return [(member.value, member.name) for member in cls]
+    
+    @classmethod
+    def values(cls) -> List[str]:
+        return [member.value for member in cls]
 ```
 
 ### 🗄️ **Django User Model**
@@ -472,7 +522,12 @@ class User(AbstractUser):
     uuid = models.UUIDField(unique=True, default=uuid6.uuid7, editable=False)
     username = None  # Removed username field
     email = models.EmailField(unique=True)
-    user_type = models.CharField(max_length=16, choices=DomainUserType.choices, default=DomainUserType.CLIENT)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)  # Nullable
+    user_type = models.CharField(
+        max_length=16, 
+        choices=DomainUserType.choices, 
+        default=DomainUserType.CLIENT
+    )
     is_email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -481,19 +536,31 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
     
     objects = UserManager()
+    
+    class Meta:
+        db_table = "users"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["phone_number"],
+                condition=models.Q(phone_number__isnull=False) & ~models.Q(phone_number=""),
+                name="unique_phone_number_constraint",
+            ),
+        ]
 ```
 
 **Key Features:**
-- **UUID7**: Time-ordered UUIDs for better database performance
+- **UUID7**: Time-ordered UUIDs for better database performance (`uuid6.uuid7`)
 - **Email Authentication**: No username required, email is the primary identifier
 - **User Types**: Support for different platform roles
+- **Nullable Phone**: Phone number is optional and nullable
 - **Audit Fields**: Automatic timestamp tracking
+- **Unique Constraints**: Phone number uniqueness when provided
 
 ### 🚫 **BlackListedToken Models**
 
 **Domain Model:**
 ```python
-@dataclass(frozen=True)
+@dataclass
 class BlackListedToken:
     access: str
     user_id: int
@@ -506,12 +573,18 @@ class BlackListedToken:
 ```python
 class BlackListedToken(models.Model):
     access = models.TextField(unique=True)
-    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="blacklisted_tokens")
+    user = models.ForeignKey(
+        "users.User", 
+        on_delete=models.CASCADE, 
+        related_name="blacklisted_tokens"
+    )
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = "auth_blacklisted_tokens"
+        verbose_name = "Blacklisted Token"
+        verbose_name_plural = "Blacklisted Tokens"
         indexes = [
             models.Index(fields=["access"]),
             models.Index(fields=["expires_at"]),
@@ -544,6 +617,12 @@ class DjangoCacheServiceAdapter(CacheServiceAdapterInterface):
     def set(self, key: str, value: Any, timeout: int | None = None) -> None:
         timeout = timeout or settings.DJANGO_CACHE_TIMEOUT
         cache.set(key, value, timeout)
+    
+    def delete(self, key: str) -> None:
+        try:
+            cache.delete(key)
+        except Exception:
+            pass
 ```
 
 #### **Email Service**
@@ -555,12 +634,16 @@ class DjangoEmailServiceAdapter(EmailServiceAdapterInterface):
             "verification_link": verification_link,
             "expiry_minutes": settings.DJANGO_VERIFICATION_TOKEN_EXPIRY,
         }
-        self._send_template_email(
-            subject="Verify your email address",
-            template_name="verify_email",
-            context=context,
-            recipient_list=[recipient_email],
-        )
+        try:
+            self._send_template_email(
+                subject="Verify your email address",
+                template_name="verify_email",
+                context=context,
+                recipient_list=[recipient_email],
+            )
+        except Exception as e:
+            logger.critical(f"Unhandled error while sending verification email for '{recipient_email}': {e}")
+            raise BaseAPIException("Failed to send verification email. Please try again later.")
 ```
 
 ### 🏭 **Factory Pattern for Dependency Injection**
@@ -656,7 +739,9 @@ urlpatterns = [
     "email": "user@example.com",
     "password": "SecurePass123!",
     "first_name": "John",
-    "last_name": "Doe"
+    "last_name": "Doe",
+    "phone_number": "+1234567890",
+    "user_type": "CLIENT"
   }
   ```
 - **Response**: JWT tokens + user info + verification message
@@ -709,6 +794,10 @@ urlpatterns = [
     "user_type": "AGENT"
   }
   ```
+
+#### **Social Authentication**
+- **Begin**: `GET /api/v1/authentication/social/begin/google-oauth2/?user_type=CLIENT`
+- **Complete**: `GET /api/v1/authentication/social/complete/google-oauth2/`
 
 ### 📊 **Standard Response Format**
 
@@ -890,6 +979,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
 # Authentication Backends
@@ -920,7 +1010,14 @@ EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
 ### 💾 **Cache Configuration**
 
 ```python
-# Redis Cache for Production
+# Development (Local Memory)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# Production (Redis)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -929,7 +1026,7 @@ CACHES = {
 }
 
 # Cache Timeouts
-DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)  # 15 minutes
+DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=600)  # 10 minutes
 DJANGO_VERIFICATION_TOKEN_EXPIRY = env.int("DJANGO_VERIFICATION_TOKEN_EXPIRY", default=15)  # minutes
 ```
 
@@ -973,6 +1070,7 @@ Production-specific security configurations:
 ```python
 # Production Security
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_TLS = True
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -984,6 +1082,17 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 ```
 
+### 📊 **Logging Configuration**
+
+```python
+# Logging
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOGS_DIR / "hp.log"
+LOG_FILE.touch(exist_ok=True)
+LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
+```
+
 ---
 
-This documentation reflects the actual implementation of the Housing & Properties authentication system, providing a comprehensive guide to its architecture, features, and configuration.
+This documentation reflects the actual implementation of the Housing & Properties authentication system, providing a comprehensive guide to its architecture, features, and configuration. All code examples and configurations are based on the current codebase structure and implementation.

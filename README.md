@@ -41,18 +41,37 @@ The project follows **Clean Architecture** principles with clear separation of c
 
 | Category | Technology | Version | Purpose |
 |----------|------------|---------|---------|
-| 🔧 **Framework** | Django | 5.2.3+ | Core web framework |
-| 🌐 **API** | Django REST Framework | 3.16.0+ | RESTful API development |
+| 🔧 **Framework** | Django | >=5.2.3 | Core web framework |
+| 🌐 **API** | Django REST Framework | >=3.16.0 | RESTful API development |
 | 🗄️ **Database** | PostgreSQL/SQLite | Latest | Primary data store |
-| 🔐 **Authentication** | JWT (SimpleJWT) | 5.5.0+ | Stateless authentication |
-| 📚 **Documentation** | drf-spectacular | 0.28.0+ | OpenAPI/Swagger docs |
-| 📊 **Logging** | Loguru | 0.7.3+ | Structured logging |
-| 🧪 **Testing** | Pytest | 8.4.0+ | Test framework |
+| 🔐 **Authentication** | JWT (SimpleJWT) | >=5.5.0 | Stateless authentication |
+| 📚 **Documentation** | drf-spectacular | >=0.28.0 | OpenAPI/Swagger docs |
+| 📚 **Documentation UI** | drf-spectacular-sidecar | >=2025.6.1 | Swagger/ReDoc UI assets |
+| 📊 **Logging** | Loguru | >=0.7.3 | Structured logging |
+| 🧪 **Testing** | Pytest | >=8.4.0 | Test framework |
 | 📦 **Package Manager** | uv | Latest | Ultra-fast dependency management |
 | ✨ **Code Quality** | Ruff + pre-commit | Latest | Linting & formatting |
-| 🔗 **Social Auth** | drf-social-oauth2 | Latest | OAuth2 integration |
-| ⚡ **Task Queue** | Celery | 5.4.0+ | Async task processing |
-| 💾 **Caching** | Redis | Latest | Cache and session storage |
+| 🔗 **Social Auth** | drf-social-oauth2 | >=3.1.0 | OAuth2 integration |
+| ⚡ **Task Queue** | Celery | >=5.3.1 | Async task processing |
+| 💾 **Caching** | Redis | >=6.2.0 | Cache and session storage |
+| 🆔 **UUID Generation** | uuid6 | >=2025.0.0 | UUID7 support |
+| 🌐 **Environment** | django-environ | >=0.12.0 | Environment variable management |
+| 🔧 **Database URL** | dj-database-url | >=3.0.0 | Database configuration |
+| 🌐 **CORS** | django-cors-headers | >=4.7.0 | Cross-origin resource sharing |
+| 💾 **Redis Integration** | django-redis | >=6.0.0 | Django Redis cache backend |
+| 🗄️ **Database** | psycopg2-binary | >=2.9.10 | PostgreSQL adapter |
+| 🌐 **Static Files** | whitenoise | >=6.9.0 | Static file serving |
+| 🚀 **WSGI Server** | gunicorn | >=23.0.0 | Production server |
+
+### 🧪 **Development Dependencies**
+- **django-debug-toolbar** (>=5.2.0) - Debug toolbar for development
+- **django-extensions** (>=4.1) - Useful Django extensions
+- **faker** (>=37.3.0) - Test data generation
+- **pre-commit** (>=4.2.0) - Pre-commit hooks
+- **pyopenssl** (>=25.1.0) - SSL support for development
+- **pytest** (>=8.4.0) - Testing framework
+- **pytest-cov** (>=6.1.1) - Test coverage reporting
+- **werkzeug** (>=3.1.3) - WSGI utilities for development
 
 ---
 
@@ -79,23 +98,39 @@ The project follows **Clean Architecture** principles with clear separation of c
 │   │   ├── 📋 presentation/        # API layer
 │   │   │   ├── serializers.py      # Request/response serializers
 │   │   │   └── views.py            # API endpoints
+│   │   ├── 🏭 models/              # Model exports
+│   │   │   └── __init__.py         # BlackListedToken export
 │   │   └── ⚡ apps.py               # App configuration
 │   └── 👤 users/                   # User domain
 │       ├── 🌐 application/         # User application services
+│       │   └── ports.py            # User repository interfaces
 │       ├── 🗄️ domain/              # User domain models & enums
+│       │   ├── enums.py            # UserType enum
+│       │   ├── events.py           # User domain events
+│       │   └── models.py           # User domain model
 │       ├── 🛠️ infrastructure/      # User data access & Django models
+│       │   ├── managers.py         # Custom user manager
+│       │   ├── models.py           # Django User model
+│       │   └── repositories.py    # User repository implementation
+│       ├── 🏭 models/              # Model exports
+│       │   └── __init__.py         # User model export
 │       └── ⚡ apps.py               # App configuration
 ├── 🌐 api/                         # API versioning and routing
+│   ├── __init__.py                 # API package init
 │   └── 📋 v1/                      # Version 1 API endpoints
+│       ├── __init__.py             # V1 URL configuration
+│       └── authentication.py      # Authentication endpoints
 ├── ⚙️ config/                      # Django configuration
 │   ├── 🔧 settings/                # Environment-specific settings
+│   │   ├── __init__.py             # Environment detection
 │   │   ├── base.py                 # Common settings
 │   │   ├── development.py          # Development configuration
 │   │   ├── production.py           # Production configuration
 │   │   └── test.py                 # Testing configuration
 │   ├── urls.py                     # Root URL configuration
 │   ├── wsgi.py                     # WSGI configuration
-│   └── asgi.py                     # ASGI configuration
+│   ├── asgi.py                     # ASGI configuration
+│   └── __init__.py                 # Celery app configuration
 ├── 🛠️ core/                        # Shared utilities and base classes
 │   ├── 🌐 application/             # Shared application components
 │   │   ├── event_bus.py            # Event handling system
@@ -104,21 +139,33 @@ The project follows **Clean Architecture** principles with clear separation of c
 │   │   └── events.py               # Base domain event
 │   ├── 🛠️ infrastructure/          # Shared infrastructure
 │   │   ├── exceptions/             # Exception handling framework
+│   │   │   ├── __init__.py         # Exception exports
+│   │   │   ├── base.py             # Base exception classes
+│   │   │   └── handler.py          # Global exception handler
 │   │   ├── logging/                # Logging configuration
+│   │   │   └── base.py             # Loguru setup
 │   │   ├── templates/              # Email templates
+│   │   │   └── verify_email.html   # Email verification template
 │   │   └── celery.py               # Celery configuration
 │   └── 📋 presentation/            # Shared presentation components
 │       ├── responses.py            # Standard API responses
 │       └── serializers.py          # Common serializers
 ├── 📝 docs/                        # Documentation
-├── 📝 logs/                        # Application logs
+│   └── authentication.md          # Authentication system docs
+├── 📝 logs/                        # Application logs (created at runtime)
+├── ⚙️ docker-compose.yml           # Docker Compose configuration
 ├── ⚙️ Dockerfile                   # Docker container configuration
-├── ⚙️ docker-compose.yml           # Docker Compose setup
 ├── ⚙️ startup.sh                   # Container startup script
+├── ⚙️ nginx.conf.example           # Nginx configuration example
 ├── 📦 pyproject.toml               # Project dependencies & configuration
+├── 📦 uv.lock                      # Dependency lock file
+├── 📦 requirements.txt             # Generated requirements file
 ├── 📄 .env.template                # Environment variables template
 ├── 🔧 Makefile                     # Development commands
-└── 📦 uv.lock                      # Dependency lock file
+├── 🐍 .python-version              # Python version specification
+├── 🔧 manage.py                    # Django management script
+├── 🚫 .dockerignore                # Docker ignore file
+└── 🚫 .gitignore                   # Git ignore file
 ```
 
 ---
@@ -167,8 +214,8 @@ GET    /api/v1/authentication/social/complete/{backend}/    # Complete social au
 ```
 
 #### **API Documentation**
-- **Swagger UI**: `/api/schema/swagger-ui/`
-- **ReDoc**: `/api/schema/redoc/`
+- **Swagger UI**: `/api/docs/swagger/`
+- **ReDoc**: `/api/docs/redoc/`
 - **OpenAPI Schema**: `/api/schema/`
 
 ### 🛡️ **Security Features**
@@ -217,7 +264,7 @@ GET    /api/v1/authentication/social/complete/{backend}/    # Complete social au
 
 ### 📋 **Prerequisites**
 
-- 🐍 **Python 3.12+** (latest stable version)
+- 🐍 **Python 3.12+** (specified in `.python-version`)
 - 🗄️ **PostgreSQL 14+** (recommended for production)
 - ⚡ **Redis 6+** (for caching and Celery)
 - 📦 **uv** (ultra-fast package manager)
@@ -261,30 +308,45 @@ nano .env  # or your preferred editor
 **Critical Environment Variables:**
 ```env
 # Django Core
-DJANGO_SECRET_KEY=your_secret_key_here
+DJANGO_SECRET_KEY=your-secret-key-here
 DJANGO_DEBUG=False
 DJANGO_ENVIRONMENT=development
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 
 # Database
 DJANGO_DATABASE_URL=postgresql://user:password@localhost:5432/housing_properties
+DATABASE_CONN_MAX_AGE=600
 
-# Redis
-REDIS_URL=redis://localhost:6379/0
+# Redis/Cache
+DJANGO_CACHE_TIMEOUT=600
+DJANGO_CACHE_BACKEND=django.core.cache.backends.locmem.LocMemCache
 
-# Email (Example: Gmail SMTP)
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# Email Configuration
+DEFAULT_FROM_EMAIL=noreply@housingandproperties.com
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your_email@gmail.com
 EMAIL_HOST_PASSWORD=your_app_password
 
+# Authentication & Verification
+DJANGO_VERIFICATION_TOKEN_EXPIRY=15
+FROM_DOMAIN=http://127.0.0.1:8000
+
 # Social Authentication
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=your_google_client_id
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=your_google_client_secret
 
-# Security
+# Security & CORS
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
+# Logging
+DJANGO_LOGGING_LEVEL=INFO
+
+# Celery (for async tasks)
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
 
 #### 5. **Database Setup**
@@ -320,28 +382,19 @@ make install
 # Run development server
 make run
 
+# Run with SSL certificate (for HTTPS testing)
+make run-cert
+
 # Run migrations
 make migrate
 
 # Create new migrations
-make makemigrations
+make migrations
 
 # Create superuser
 make superuser
 
-# Run tests
-make test
-
-# Format code
-make format
-
-# Lint code
-make lint
-
-# Run all checks
-make check
-
-# Clean cache and temp files
+# Clean cache and temporary files
 make clean
 ```
 
@@ -363,18 +416,33 @@ docker-compose logs -f web
 # Execute commands in container
 docker-compose exec web uv run manage.py shell
 docker-compose exec web uv run manage.py createsuperuser
+
+# Stop services
+docker-compose down
 ```
+
+### **Docker Services**
+The `docker-compose.yml` includes:
+- **web**: Django application server
+- **celery**: Background task worker
+- **Shared volumes**: Static files, media files, application code
 
 ### **Production Deployment**
 ```bash
 # Set production environment
 echo "DJANGO_ENVIRONMENT=production" >> .env
 
-# Use production settings
-docker-compose -f docker-compose.prod.yml up -d
+# Update settings for production
+# Configure PostgreSQL, Redis, and SMTP settings
 
-# SSL certificates (if needed)
-openssl req -x509 -newkey rsa:4096 -keyout cert.key -out cert.crt -days 365 -nodes
+# Build and deploy
+docker-compose up -d
+
+# Collect static files
+docker-compose exec web uv run manage.py collectstatic --noinput
+
+# Run migrations
+docker-compose exec web uv run manage.py migrate
 ```
 
 ---
@@ -382,8 +450,8 @@ openssl req -x509 -newkey rsa:4096 -keyout cert.key -out cert.crt -days 365 -nod
 ## 📊 API Documentation
 
 ### **Interactive Documentation**
-- **Swagger UI**: http://localhost:8000/api/schema/swagger-ui/
-- **ReDoc**: http://localhost:8000/api/schema/redoc/
+- **Swagger UI**: http://localhost:8000/api/docs/swagger/
+- **ReDoc**: http://localhost:8000/api/docs/redoc/
 - **OpenAPI Schema**: http://localhost:8000/api/schema/
 
 ### **Authentication Examples**
@@ -396,7 +464,9 @@ curl -X POST http://localhost:8000/api/v1/authentication/register/ \
     "email": "user@example.com",
     "password": "SecurePass123!",
     "first_name": "John",
-    "last_name": "Doe"
+    "last_name": "Doe",
+    "phone_number": "+1234567890",
+    "user_type": "CLIENT"
   }'
 ```
 
@@ -410,10 +480,30 @@ curl -X POST http://localhost:8000/api/v1/authentication/login/ \
   }'
 ```
 
+#### **Email Verification Request**
+```bash
+curl -X POST http://localhost:8000/api/v1/authentication/verify-email/request/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+
+#### **Social Authentication**
+```bash
+# Start Google OAuth flow
+curl -X GET "http://localhost:8000/api/v1/authentication/social/begin/google-oauth2/?user_type=CLIENT"
+```
+
 #### **Authenticated Request**
 ```bash
-curl -X GET http://localhost:8000/api/v1/users/profile/ \
-  -H "Authorization: Bearer your_access_token_here"
+curl -X PUT http://localhost:8000/api/v1/authentication/update-user-type/ \
+  -H "Authorization: Bearer your_access_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "user_type": "AGENT"
+  }'
 ```
 
 ---
@@ -421,16 +511,16 @@ curl -X GET http://localhost:8000/api/v1/users/profile/ \
 ## 🔒 Security
 
 ### **Production Security Checklist**
-- ✅ **HTTPS**: Force SSL in production
+- ✅ **HTTPS**: Force SSL in production (`SECURE_SSL_REDIRECT = True`)
 - ✅ **Secret Key**: Use strong, random secret key
-- ✅ **Debug Mode**: Disabled in production
+- ✅ **Debug Mode**: Disabled in production (`DJANGO_DEBUG = False`)
 - ✅ **Database**: Secure database credentials
 - ✅ **CORS**: Configure allowed origins
-- ✅ **Rate Limiting**: Enable throttling
+- ✅ **Rate Limiting**: Enable throttling (5/min anon, 10/min auth)
 - ✅ **Security Headers**: XSS, CSRF, clickjacking protection
 - ✅ **Email**: Use secure email backend (not console)
 - ✅ **Social Auth**: Secure OAuth2 credentials
-- ✅ **Logging**: Appropriate log levels
+- ✅ **Logging**: Appropriate log levels (`DJANGO_LOGGING_LEVEL`)
 
 ### **Security Headers Applied**
 ```python
@@ -440,6 +530,8 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 ```
 
 ---
@@ -449,18 +541,16 @@ SECURE_HSTS_SECONDS = 31536000
 ### **Running Tests**
 ```bash
 # Run all tests
-make test
-# or
-uv run pytest
+pytest
 
 # Run with coverage
-uv run pytest --cov=apps --cov-report=html
+pytest --cov=apps --cov-report=html
 
 # Run specific test file
-uv run pytest tests/test_authentication/
+pytest tests/test_authentication/
 
 # Run with verbose output
-uv run pytest -v
+pytest -v
 ```
 
 ### **Test Structure**
@@ -481,19 +571,20 @@ tests/
 ## 📈 Performance & Monitoring
 
 ### **Database Optimization**
-- **Connection pooling** with configurable `CONN_MAX_AGE`
+- **Connection pooling** with configurable `DATABASE_CONN_MAX_AGE`
 - **Query optimization** with select_related/prefetch_related
 - **Database indexing** on frequently queried fields
-- **Migration strategies** for zero-downtime deployments
+- **UUID7 usage** for better database performance (time-ordered)
 
 ### **Caching Strategy**
 - **Redis caching** for session data and temporary tokens
 - **Template caching** for static content
-- **API response caching** for expensive operations
-- **Database query caching** for repeated queries
+- **Configurable timeout** via `DJANGO_CACHE_TIMEOUT`
+- **Different backends** for dev (LocMem) vs prod (Redis)
 
 ### **Monitoring**
-- **Structured logging** with request tracing
+- **Structured logging** with Loguru and request tracing
+- **Log rotation** (10MB files, 10-day retention)
 - **Performance metrics** via Django admin
 - **Error tracking** with detailed stack traces
 - **Health check endpoints** for system monitoring
@@ -504,17 +595,14 @@ tests/
 
 ### **Code Quality**
 ```bash
-# Format code with ruff
-make format
+# Format code with ruff (via pre-commit)
+make clean  # Includes code formatting
 
-# Lint code
-make lint
+# Install pre-commit hooks
+make install  # Includes pre-commit installation
 
-# Run pre-commit hooks
+# Run pre-commit hooks manually
 pre-commit run --all-files
-
-# Type checking (if using mypy)
-mypy apps/
 ```
 
 ### **Git Workflow**
@@ -524,16 +612,15 @@ git checkout -b feature/new-feature
 git commit -m "feat: add new feature"
 git push origin feature/new-feature
 
-# Code review and merge to main
+# Pre-commit hooks will run automatically
 ```
 
 ### **Environment Management**
-- **Development**: Local SQLite, console email backend
-- **Staging**: PostgreSQL, SMTP email, Redis cache
-- **Production**: PostgreSQL, secure settings, monitoring
+- **Development**: Local SQLite, console email backend, LocMem cache
+- **Production**: PostgreSQL, SMTP email, Redis cache, security headers
+- **Testing**: In-memory database, test-specific settings
 
 ---
-
 
 ## 🤝 Contributing
 
@@ -542,15 +629,16 @@ git push origin feature/new-feature
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass
+5. Ensure all tests pass (`pytest`)
 6. Submit a pull request
 
 ### **Code Standards**
-- Follow PEP 8 style guidelines
+- Follow PEP 8 style guidelines (enforced by pre-commit)
 - Write comprehensive tests
 - Document new features
 - Use conventional commit messages
 - Maintain backward compatibility
+- Follow Clean Architecture principles
 
 ---
 
@@ -561,5 +649,8 @@ git push origin feature/new-feature
 - **Clean Architecture**: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
 - **API Design Best Practices**: https://restfulapi.net/
 - **Python Type Hints**: https://docs.python.org/3/library/typing.html
+- **Loguru Documentation**: https://loguru.readthedocs.io/
+- **Celery Documentation**: https://docs.celeryproject.org/
+- **UV Package Manager**: https://github.com/astral-sh/uv
 
 ---
