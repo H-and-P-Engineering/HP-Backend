@@ -119,6 +119,7 @@ def get_verify_email_rule():
 
 def get_social_authentication_rule():
     return SocialAuthenticationRule(
+        user_repository=get_user_repository(),
         social_authentication_service=get_social_authentication_service(),
         event_publisher=get_event_publisher(),
     )

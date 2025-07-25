@@ -216,7 +216,8 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
 
     social_authentication_rule = get_social_authentication_rule()
     return social_authentication_rule.begin_authentication(
-        request=request
+        request=request,
+        user_type=user_type,
     )
 
 
@@ -239,14 +240,13 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
 def complete_social_authentication(request: Request, backend_name: str) -> Response:
     social_authentication_rule = get_social_authentication_rule()
 
-    user_dict = social_authentication_rule.complete_authentication(request)
-    user = user_dict["user"]
+    user = social_authentication_rule.complete_authentication(request)
 
     jwt_token_service = get_jwt_token_service()
     tokens = jwt_token_service.create_tokens(user)
     response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
 
-    is_new_user = user_dict["is_new_user"]
+    is_new_user = user.is_new
 
     if is_new_user:
         return StandardResponse.created(

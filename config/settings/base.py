@@ -122,9 +122,8 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "core.infrastructure.exceptions.hp_exception_handler",
 }
 
-# CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
+CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Housing & Properties API",
@@ -162,8 +161,10 @@ FROM_DOMAIN = env.str("FROM_DOMAIN", default="http://127.0.0.1:8000")
 DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env.str("REDIS_URL", default="redis://localhost:6379/0"),
+        "BACKEND": env.str(
+            "DJANGO_CACHE_BACKEND",
+            default="django.core.cache.backends.locmem.LocMemCache",
+        ),
     }
 }
 

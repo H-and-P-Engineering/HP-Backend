@@ -26,6 +26,8 @@ def create_user(
         )
         return {"user": user, "is_new": False}
 
+    user_type = kwargs.get("user_type")
+
     fields = {
         name: kwargs.get(name, details.get(name))
         for name in backend.setting("USER_FIELDS", USER_FIELDS)
@@ -35,6 +37,7 @@ def create_user(
         return
 
     fields["is_email_verified"] = True
+    fields["user_type"] = user_type
 
     domain_user = DomainUser(
         email=fields["email"],

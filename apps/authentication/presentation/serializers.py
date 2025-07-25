@@ -10,8 +10,14 @@ from apps.users.domain.models import User as DomainUser
 class UserRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
+    user_type = serializers.ChoiceField(
+        allow_blank=True,
+        choices=DomainUserType.choices(),
+        default=DomainUserType.CLIENT,
+    )
     first_name = serializers.CharField(required=True, max_length=30)
     last_name = serializers.CharField(required=True, max_length=30)
+    phone_number = serializers.CharField(required=True, max_length=20)
 
     def validate_password(self, value: str) -> str:
         if " " in value:
@@ -46,7 +52,9 @@ class UpdateUserTypeSerializer(serializers.Serializer):
 
     def validate_user_type(self, value: str) -> str:
         if value == "ADMIN":
-            raise serializers.ValidationError("User type for regular users cannot be 'ADMIN'.")
+            raise serializers.ValidationError(
+                "User type for regular users cannot be 'ADMIN'."
+            )
 
         return value
 
@@ -66,10 +74,14 @@ class JWTTokenSerializer(serializers.Serializer):
             return {
                 "id": str(user.uuid),
                 "email": user.email,
-                "user_type": user.user_type.value if hasattr(user.user_type, "value") else user.user_type,
+                "user_type": user.user_type.value
+                if hasattr(user.user_type, "value")
+                else user.user_type,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
+                "phone_number": user.phone_number,
                 "is_email_verified": user.is_email_verified,
+                "is_new": user.is_new,
             }
         return {}
 

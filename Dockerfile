@@ -10,3 +10,5 @@ ENV PYTHONUNBUFFERED 1
 COPY . .
 
 RUN uv sync
+
+RUN mkdir -p /app/logs && chmod 777 /app/logs

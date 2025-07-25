@@ -5,12 +5,13 @@ from uuid import UUID
 from apps.users.domain.enums import UserType
 
 
-@dataclass(frozen=True)
+@dataclass
 class User:
     email: str
     password_hash: str | None = field(default=None, repr=False)
     first_name: str = ""
     last_name: str = ""
+    phone_number: str = ""
     user_type: UserType = UserType.CLIENT
     is_email_verified: bool = False
     is_active: bool = True

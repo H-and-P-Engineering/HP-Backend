@@ -146,7 +146,7 @@ class DjangoJWTTokenAdapter(JWTTokenAdapterInterface):
 
 
 class SocialAuthenticationAdapter(SocialAuthenticationAdapterInterface):
-    def begin(self, request: Any) -> Any:
+    def begin(self, request: Any, user_type: str) -> Any:
         return do_auth(request.backend, redirect_name=REDIRECT_FIELD_NAME)
 
     def get_or_create_social(self, request: Any) -> Dict[str, DomainUser | bool]:

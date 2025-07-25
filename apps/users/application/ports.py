@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from apps.users.domain.models import User as DomainUser
-from typing import Any
 
 
 class UserRepositoryInterface(ABC):
@@ -10,17 +10,17 @@ class UserRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def create_social(self, user: DomainUser) -> Any:
+    def update(self, user: DomainUser, **kwargs) -> DomainUser:
         pass
 
     @abstractmethod
-    def update(self, user: DomainUser, return_raw: bool = True, **kwargs) -> DomainUser:
+    def get_by_id(self, user_id: int) -> DomainUser:
         pass
 
     @abstractmethod
-    def get_by_id(self, user_id: int) -> DomainUser | None:
+    def get_by_email(self, email: str) -> DomainUser:
         pass
 
     @abstractmethod
-    def get_by_email(self, email: str) -> DomainUser | None:
+    def get_or_create_social(self, request: Any) -> DomainUser:
         pass

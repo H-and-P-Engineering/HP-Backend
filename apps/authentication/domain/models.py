@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 
-@dataclass(frozen=True)
+@dataclass
 class BlackListedToken:
     access: str
     user_id: int

@@ -73,11 +73,7 @@ class BlackListedTokenRepositoryInterface(ABC):
 
 class SocialAuthenticationAdapterInterface(ABC):
     @abstractmethod
-    def begin(self, request: Any) -> Any:
-        pass
-
-    @abstractmethod
-    def get_or_create_social(self, request: Any) -> Dict[str, DomainUser | bool]:
+    def begin(self, request: Any, user_type: str) -> Any:
         pass
 
 
