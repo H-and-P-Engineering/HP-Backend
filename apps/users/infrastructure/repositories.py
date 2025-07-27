@@ -18,7 +18,9 @@ class DjangoUserRepository(UserRepositoryInterface):
     def create(self, user: DomainUser) -> DomainUser:
         django_user = User.objects.create_user(**self._to_django_user_data(user))
 
-        return self._to_domain_user_data(django_user)
+        domain_user = self._to_domain_user_data(django_user)
+        domain_user.is_new = True
+        return domain_user
 
     def create_social(self, user: DomainUser) -> User:
         return User.objects.create_user(**self._to_django_user_data(user))

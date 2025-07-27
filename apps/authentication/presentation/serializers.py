@@ -13,7 +13,7 @@ class UserRegistrationSerializer(serializers.Serializer):
     user_type = serializers.ChoiceField(
         allow_blank=True,
         choices=DomainUserType.choices(),
-        default=DomainUserType.CLIENT,
+        default=DomainUserType.CLIENT.value,
     )
     first_name = serializers.CharField(required=True, max_length=30)
     last_name = serializers.CharField(required=True, max_length=30)
