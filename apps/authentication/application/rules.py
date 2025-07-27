@@ -49,7 +49,7 @@ class RegisterUserRule:
             first_name=first_name,
             last_name=last_name,
             phone_number=phone_number,
-            user_type=DomainUserType(user_type.upper()),
+            user_type=DomainUserType(user_type.upper() if isinstance(user_type, str) else user_type),
             is_new=True,
         )
 
