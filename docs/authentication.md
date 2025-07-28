@@ -358,8 +358,8 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 - 🔄 **Provider Callback**: After successful authentication with the social provider, the user is redirected back to this endpoint
 - 🎭 **User Resolution**: The `complete_social_authentication` view handles the callback from the social provider
 - 🏗️ **User Creation/Retrieval**: Uses the `SocialAuthenticationRule` to either retrieve an existing user or create a new user account based on the social provider's information and the `user_type` from the session
-- 🎫 **Token Generation**: Upon successful completion, JWT tokens are generated for the user
-- ✅ **Response Differentiation**: Returns different success messages based on whether the user is new (registration) or existing (login)
+- 🎫 **Token Generation**: Upon successful completion, JWT tokens are generated for the user, and a `session_id` is created.
+- ✅ **Response Differentiation**: Returns different success messages based on whether the user is new (registration) or existing (login). The user is redirected to a frontend url which makes a call to `social/data` using the created `session_id` to retrieve the user's authentication response data.
 
 #### 📋 **Social Authentication Pipeline**
 

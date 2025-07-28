@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from apps.authentication.domain.events import (
     UserEmailVerifiedEvent,
     UserLogoutEvent,
@@ -68,6 +66,6 @@ def blacklist_jwt_token(
     event: UserLogoutEvent,
     blacklisted_token_repository: DjangoBlackListedTokenRepository,
 ) -> None:
-    token, user_id = event.token, event.user_id
+    token, _user_id = event.token, event.user_id
 
     blacklisted_token_repository.add(token)

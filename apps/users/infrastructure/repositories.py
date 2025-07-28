@@ -7,6 +7,7 @@ from social_core.utils import (
 )
 
 from apps.users.application.ports import UserRepositoryInterface
+from apps.users.domain.enums import UserType as DomainUserType
 from apps.users.domain.models import User as DomainUser
 from apps.users.domain.models import UserType as DomainUserType
 from apps.users.infrastructure.models import User
@@ -15,7 +16,7 @@ from core.infrastructure.logging.base import logger
 
 
 class DjangoUserRepository(UserRepositoryInterface):
-    def create(self, user: DomainUser) -> DomainUser:
+    def create(self, user: DomainUser, is_social: bool = False) -> DomainUser:
         django_user = User.objects.create_user(**self._to_django_user_data(user))
 
         domain_user = self._to_domain_user_data(django_user)
@@ -32,12 +33,17 @@ class DjangoUserRepository(UserRepositoryInterface):
             django_user.first_name = user.first_name
             django_user.last_name = user.last_name
             django_user.phone_number = user.phone_number
-            django_user.user_type = user.user_type
+            if user.user_type != DomainUserType.ADMIN:
+                django_user.user_type = user.user_type
             django_user.is_email_verified = user.is_email_verified
             django_user.is_active = user.is_active
 
             for key, value in kwargs.items():
-                if hasattr(django_user, key):
+                if (
+                    hasattr(django_user, key)
+                    and key not in ["password", "password_hash", "created_at"]
+                    and value not in [DomainUserType.ADMIN]
+                ):
                     setattr(django_user, key, value)
 
             django_user.save()
