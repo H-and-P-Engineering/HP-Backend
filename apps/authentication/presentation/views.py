@@ -1,5 +1,8 @@
+import secrets
 from typing import Any
 
+from django.conf import settings
+from django.shortcuts import redirect
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -10,6 +13,7 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from social_django.utils import psa
 
 from apps.authentication.infrastructure.factory import (
+    get_cache_service,
     get_jwt_token_service,
     get_login_user_rule,
     get_logout_user_rule,
@@ -248,13 +252,43 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 
     is_new_user = user.is_new
 
-    if is_new_user:
-        return StandardResponse.created(
-            data=response_serializer.data,
-            message="Registration successful. Welcome to Housing & Properties!",
-        )
-    else:
-        return StandardResponse.success(
-            data=response_serializer.data,
-            message="Login successful. Welcome back!",
-        )
+    session_id = secrets.token_urlsafe(32)
+
+    response_data = {
+        "data": response_serializer.data,
+        "message": (
+            "Registration successful. Welcome to Housing & Properties!"
+            if is_new_user
+            else "Login successful. Welcome back!"
+        ),
+    }
+
+    cache_service = get_cache_service()
+    cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
+
+    return redirect(f"{settings.FRONTEND_URL}?session={session_id}")
+
+
+@extend_schema(
+    request=None,
+    responses={
+        200: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Fetch social authentication user data using temporary session ID.",
+    tags=["Authentication"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@throttle_classes([AnonRateThrottle])
+def get_social_auth_data(request: Request) -> Response:
+    session_id = request.query_params["session"]
+
+    cache_service = get_cache_service()
+    auth_data = cache_service.get(f"social_auth_session_{session_id}")
+    cache_service.delete(f"social_auth_session_{session_id}")
+
+    return StandardResponse.success(
+        data=auth_data["data"], message=auth_data["message"]
+    )

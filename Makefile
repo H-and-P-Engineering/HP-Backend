@@ -1,7 +1,6 @@
 .PHONY: install
 install:
 	uv pip install -e ".[dev]"
-	pre-commit install
 
 .PHONY: migrations
 migrations:
@@ -25,8 +24,18 @@ run-cert:
 	
 .PHONY: clean
 clean: 
-	find . -name "*.pyc" -delete
-	find . -name "__pycache__" -delete
-	find . -name ".pytest_cache" -delete
-	find . -name ".coverage" -delete
-	find . -name "htmlcov" -delete
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name "*.pyc" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	find . -type d -name ".coverage" -exec rm -rf {} +
+	find . -type d -name "htmlcov" -exec rm -rf {} +
+
+.PHONY: test
+test:
+	uv run pytest
+
+.PHONY: format
+format:
+	uv tool run isort .
+	uv tool run ruff format .

@@ -4,6 +4,7 @@ from social_django.urls import extra
 from apps.authentication.presentation.views import (
     begin_social_authentication,
     complete_social_authentication,
+    get_social_auth_data,
     login_user,
     logout_user,
     register_user,
@@ -35,4 +36,5 @@ urlpatterns = [
         complete_social_authentication,
         name="social-complete",
     ),
+    path("social/data", get_social_auth_data, name="social-data"),
 ]
