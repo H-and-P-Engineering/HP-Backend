@@ -1,8 +1,8 @@
-from enum import Enum
+from enum import StrEnum
 from typing import List, Tuple
 
 
-class UserType(Enum):
+class UserType(StrEnum):
     CLIENT = "CLIENT"
     AGENT = "AGENT"
     VENDOR = "VENDOR"

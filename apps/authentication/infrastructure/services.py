@@ -32,9 +32,7 @@ from apps.authentication.application.ports import (
     SocialAuthenticationAdapterInterface,
     VerificationServiceAdapterInterface,
 )
-from apps.users.domain.enums import UserType
 from apps.users.domain.models import User as DomainUser
-from apps.users.infrastructure.repositories import DjangoUserRepository
 from core.application.event_bus import EventBus
 from core.domain.events import DomainEvent
 from core.infrastructure.exceptions import BadRequestError, BaseAPIException
@@ -165,12 +163,12 @@ class SocialAuthenticationAdapter(SocialAuthenticationAdapterInterface):
 
         if not social_user:
             raise BadRequestError(
-                "Social authentication failed. Requested user account is inactive."
+                "Social authentication failed. This account has been deactivated or does not exist."
             )
 
         if not getattr(social_user, "is_active", False):
             raise BadRequestError(
-                "Social authentication failed. This account has been deactivated."
+                "Social authentication failed. Requested user account is inactive."
             )
 
         user_model = backend.strategy.storage.user.user_model()

@@ -215,3 +215,5 @@ CELERY_RESULT_BACKEND = env.str(
 CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
 CELERY_TASK_SERIALIZER = "pickle"
 CELERY_RESULT_SERIALIZER = "pickle"
+
+FRONTEND_URL = env.str("FRONTEND_URL")

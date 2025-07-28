@@ -17,7 +17,7 @@ class User:
     is_active: bool = True
     is_staff: bool = False
     is_superuser: bool = False
-    is_new: bool = False
+    is_new: bool = True
     id: int | None = None
     uuid: UUID | None = None
     created_at: datetime | None = None

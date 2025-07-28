@@ -4,7 +4,6 @@ from typing import Any, Dict
 from uuid import UUID
 
 from apps.authentication.domain.models import BlackListedToken as DomainBlackListedToken
-from apps.users.domain.models import User as DomainUser
 
 
 class PasswordServiceAdapterInterface(ABC):
