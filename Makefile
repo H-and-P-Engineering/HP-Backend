@@ -24,7 +24,6 @@ run-cert:
 	
 .PHONY: clean
 clean: 
-	find . -name "__pycache__" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name "*.pyc" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +

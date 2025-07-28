@@ -268,17 +268,6 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 
     return redirect(f"{settings.FRONTEND_URL}?session={session_id}")
 
-    # if is_new_user:
-    #     return StandardResponse.created(
-    #         data=response_serializer.data,
-    #         message="Registration successful. Welcome to Housing & Properties!",
-    #     )
-    # else:
-    #     return StandardResponse.success(
-    #         data=response_serializer.data,
-    #         message="Login successful. Welcome back!",
-    #     )
-
 
 @extend_schema(
     request=None,
