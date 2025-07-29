@@ -2,7 +2,7 @@ import secrets
 from typing import Any
 
 from django.conf import settings
-from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -266,7 +266,16 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
     cache_service = get_cache_service()
     cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
 
-    return redirect(f"{settings.FRONTEND_URL}?session={session_id}")
+    response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
+    response.set_cookie(
+        "social_auth_session",
+        session_id,
+        max_age=600,
+        httponly=True,
+        secure=True,
+        samesite="None",
+    )
+    return response
 
 
 @extend_schema(
@@ -283,12 +292,14 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 @permission_classes([AllowAny])
 @throttle_classes([AnonRateThrottle])
 def get_social_auth_data(request: Request) -> Response:
-    session_id = request.query_params["session"]
+    session_id = request.COOKIES.get("social_auth_session")
 
     cache_service = get_cache_service()
     auth_data = cache_service.get(f"social_auth_session_{session_id}")
     cache_service.delete(f"social_auth_session_{session_id}")
 
-    return StandardResponse.success(
+    response = StandardResponse.success(
         data=auth_data["data"], message=auth_data["message"]
     )
+    response.delete_cookie("social_auth_session")
+    return response
