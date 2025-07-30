@@ -266,7 +266,7 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
     cache_service = get_cache_service()
     cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
 
-    response = HttpResponseRedirect(f"{settings.FRONTEND_URL}")
+    response = HttpResponseRedirect(f"{settings.FRONTEND_URL}?is_new_user={is_new_user}")
     response.set_cookie(
         "social_auth_session",
         session_id,
