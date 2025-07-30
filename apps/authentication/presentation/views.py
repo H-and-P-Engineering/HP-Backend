@@ -2,7 +2,7 @@ import secrets
 from typing import Any
 
 from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -266,10 +266,9 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
     cache_service = get_cache_service()
     cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
 
-    response = HttpResponseRedirect(f"{settings.FRONTEND_URL}?is_new={is_new_user}", status=303)
-    # response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    # response["Pragma"] = "no-cache"
-    # response["Expires"] = "0"
+    redirect_url = f"{settings.FRONTEND_URL}?is_new={is_new_user}"
+    response = HttpResponse(status=303)
+    response["Location"] = redirect_url
     response.set_cookie(
         "social_auth_session",
         session_id,

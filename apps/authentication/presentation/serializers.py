@@ -74,9 +74,11 @@ class JWTTokenSerializer(serializers.Serializer):
             return {
                 "id": str(user.uuid),
                 "email": user.email,
-                "user_type": user.user_type.value
-                if hasattr(user.user_type, "value")
-                else user.user_type,
+                "user_type": (
+                    user.user_type.value
+                    if hasattr(user.user_type, "value")
+                    else user.user_type
+                ),
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "phone_number": user.phone_number,
