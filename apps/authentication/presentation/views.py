@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -296,8 +297,21 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 def get_social_auth_data(request: Request) -> Response:
     session_id = request.COOKIES.get("social_auth_session")
 
+    if not session_id:
+        raise AuthenticationFailed(
+            detail="Social authentication session not found. Please try logging in again.",
+            code=401
+        )
+
     cache_service = get_cache_service()
     auth_data = cache_service.get(f"social_auth_session_{session_id}")
+
+    if not auth_data:
+        raise AuthenticationFailed(
+            detail="Social authentication session has expired or is invalid. Please try logging in again.",
+            code=401
+        )
+    
     cache_service.delete(f"social_auth_session_{session_id}")
 
     response = StandardResponse.success(
