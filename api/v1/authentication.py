@@ -36,5 +36,5 @@ urlpatterns = [
         complete_social_authentication,
         name="social-complete",
     ),
-    path("social/data", get_social_auth_data, name="social-data"),
+    path("social/data/", get_social_auth_data, name="social-data"),
 ]
