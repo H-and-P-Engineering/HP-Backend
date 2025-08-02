@@ -46,7 +46,7 @@ def create_user(
         is_email_verified=fields["is_email_verified"],
     )
 
-    created_user = user_repository.create(domain_user, is_social=True)
+    created_user = user_repository.create_social(domain_user)
 
     event_publisher.publish(
         UserUpdateEvent(
