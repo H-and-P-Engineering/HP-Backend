@@ -9,10 +9,6 @@ ENV PYTHONUNBUFFERED 1
 
 COPY . .
 
-RUN if [ "$DJANGO_ENVIRONMENT" = "development" ]; then \
-        uv sync --extra dev; \
-    else \
-        uv sync; \
-    fi
+RUN uv sync
 
 RUN mkdir -p /app/logs && chmod 777 /app/logs
