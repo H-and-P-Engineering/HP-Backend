@@ -154,12 +154,16 @@ def test_update_user(user_repository: DjangoUserRepository, faker_instance: Fake
         password_hash=django_user.password,
         first_name=updated_first_name,
         last_name=updated_last_name,
-        user_type=UserType.AGENT,
-        is_active=False,
+        user_type=django_user.user_type,
+        is_active=django_user.is_active,
     )
 
     updated_domain_user = user_repository.update(
-        domain_user_to_update, return_raw=False
+        domain_user_to_update,
+        first_name=updated_first_name,
+        last_name=updated_last_name,
+        user_type=UserType.AGENT,
+        is_active=False,
     )
 
     assert updated_domain_user.id == domain_user_to_update.id
@@ -223,7 +227,6 @@ def test_update_user_with_unacceptable_fields(
 
     updated_domain_user = user_repository.update(
         domain_user_to_update,
-        return_raw=False,
         user_type="ADMIN",
         password=updated_password,
         last_login=updated_last_login,

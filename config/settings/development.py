@@ -8,14 +8,6 @@ INSTALLED_APPS.extend(["debug_toolbar", "django_extensions"])
 
 MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default="sqlite:///db.sqlite3",
-        conn_max_age=env.int("CONN_MAX_AGE", default=600),
-        conn_health_checks=True,
-    )
-}
-
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",

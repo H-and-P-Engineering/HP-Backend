@@ -29,14 +29,6 @@ class DjangoUserRepository(UserRepositoryInterface):
     def update(self, user: DomainUser, **kwargs) -> DomainUser:
         try:
             django_user = User.objects.get(id=user.id)
-            django_user.email = user.email
-            django_user.first_name = user.first_name
-            django_user.last_name = user.last_name
-            django_user.phone_number = user.phone_number
-            if user.user_type != DomainUserType.ADMIN:
-                django_user.user_type = user.user_type
-            django_user.is_email_verified = user.is_email_verified
-            django_user.is_active = user.is_active
 
             for key, value in kwargs.items():
                 if (

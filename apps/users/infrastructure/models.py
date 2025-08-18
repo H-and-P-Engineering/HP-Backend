@@ -10,7 +10,7 @@ class User(AbstractUser):
     uuid = models.UUIDField(unique=True, default=uuid6.uuid7, editable=False)
     username = None
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     user_type = models.CharField(
         max_length=16, choices=DomainUserType.choices, default=DomainUserType.CLIENT
     )

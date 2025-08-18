@@ -7,12 +7,12 @@ from apps.authentication.domain.events import (
 from apps.authentication.infrastructure.repositories import (
     DjangoBlackListedTokenRepository,
 )
-from apps.authentication.infrastructure.services import (
+from apps.users.infrastructure.repositories import DjangoUserRepository
+from core.infrastructure.services import (
     DjangoCacheServiceAdapter,
     DjangoEmailServiceAdapter,
     DjangoVerificationServiceAdapter,
 )
-from apps.users.infrastructure.repositories import DjangoUserRepository
 
 
 def send_verification_email_event(
