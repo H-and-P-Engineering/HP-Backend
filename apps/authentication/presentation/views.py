@@ -32,6 +32,7 @@ from apps.authentication.presentation.serializers import (
     UserLogoutSerializer,
     UserRegistrationSerializer,
 )
+from apps.users.presentation.serializers import UserResponseSerializer
 from core.presentation.responses import StandardResponse
 from core.presentation.serializers import (
     ErrorResponseExampleSerializer,
@@ -60,10 +61,7 @@ def register_user(request: Request) -> Response:
     register_user_rule = get_register_user_rule()
     user = register_user_rule.execute(**validated_data)
 
-    jwt_token_service = get_jwt_token_service()
-    tokens = jwt_token_service.create_tokens(user)
-
-    response_serializer = JWTTokenSerializer(dict(user=user, **tokens))
+    response_serializer = UserResponseSerializer(dict(user=user))
 
     return StandardResponse.created(
         data=response_serializer.data,
@@ -300,7 +298,7 @@ def get_social_auth_data(request: Request) -> Response:
     if not session_id:
         raise AuthenticationFailed(
             detail="Social authentication session not found. Please try logging in again.",
-            code=401
+            code=401,
         )
 
     cache_service = get_cache_service()
@@ -309,9 +307,9 @@ def get_social_auth_data(request: Request) -> Response:
     if not auth_data:
         raise AuthenticationFailed(
             detail="Social authentication session has expired or is invalid. Please try logging in again.",
-            code=401
+            code=401,
         )
-    
+
     cache_service.delete(f"social_auth_session_{session_id}")
 
     response = StandardResponse.success(

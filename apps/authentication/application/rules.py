@@ -2,8 +2,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from apps.authentication.application.ports import (
-    CacheServiceAdapterInterface,
-    EventPublisherInterface,
     JWTTokenAdapterInterface,
     PasswordServiceAdapterInterface,
     SocialAuthenticationAdapterInterface,
@@ -19,6 +17,7 @@ from apps.users.application.ports import UserRepositoryInterface
 from apps.users.domain.models import User as DomainUser
 from apps.users.domain.models import UserType as DomainUserType
 from core.application.exceptions import BusinessRuleException
+from core.application.ports import CacheServiceAdapterInterface, EventPublisherInterface
 
 
 class RegisterUserRule:

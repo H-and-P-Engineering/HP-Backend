@@ -30,7 +30,7 @@ class UserManager(BaseUserManager):
                 raise ConflictError(
                     "User creation failed. User with provided email already exists."
                 ) from e
-            elif "unique_phone_number_constraint" in str(e):
+            elif "phone_number" in str(e):
                 raise ConflictError(
                     "User creation failed. User with provided phone number already exists."
                 ) from e

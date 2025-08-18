@@ -21,13 +21,13 @@ from apps.authentication.infrastructure.event_handlers import (
 from apps.authentication.infrastructure.repositories import (
     DjangoBlackListedTokenRepository,
 )
-from apps.authentication.infrastructure.services import (
+from apps.users.domain.models import User as DomainUser
+from apps.users.infrastructure.repositories import DjangoUserRepository
+from core.infrastructure.services import (
     DjangoCacheServiceAdapter,
     DjangoEmailServiceAdapter,
     DjangoVerificationServiceAdapter,
 )
-from apps.users.domain.models import User as DomainUser
-from apps.users.infrastructure.repositories import DjangoUserRepository
 
 
 @pytest.fixture

@@ -15,4 +15,3 @@ yarn-error.log
 docker-compose.yml
 README.md
 Makefile
-uv.lock 

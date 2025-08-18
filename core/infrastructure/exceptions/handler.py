@@ -85,7 +85,7 @@ def hp_exception_handler(exc: Exception, context: Dict[str, Any]) -> Response | 
         response_data["error"] = {"detail": normalize_error_detail(response.data)}
     elif isinstance(exc, AuthenticationFailed):
         response_data["message"] = "Authentication failed"
-        response_data["error"] = {"detail": str(exc.detail)}
+        response_data["error"] = {"detail": exc.detail}
     elif isinstance(exc, NotAuthenticated):
         response_data["message"] = "Authentication required"
         response_data["error"] = {"detail": str(exc)}

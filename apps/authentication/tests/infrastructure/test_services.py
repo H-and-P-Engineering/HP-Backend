@@ -9,15 +9,17 @@ from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import ExpiredTokenError, InvalidToken
 
 from apps.authentication.infrastructure.services import (
-    DjangoCacheServiceAdapter,
-    DjangoEmailServiceAdapter,
     DjangoJWTTokenAdapter,
     DjangoPasswordServiceAdapter,
-    DjangoVerificationServiceAdapter,
     SocialAuthenticationAdapter,
 )
 from apps.users.infrastructure.models import User as DjangoORMUser
 from core.infrastructure.exceptions import BadRequestError, BaseAPIException
+from core.infrastructure.services import (
+    DjangoCacheServiceAdapter,
+    DjangoEmailServiceAdapter,
+    DjangoVerificationServiceAdapter,
+)
 
 
 @pytest.fixture
@@ -83,7 +85,7 @@ def test_verification_service_generate_token(
     assert len(token) > 0
 
 
-@patch("apps.authentication.infrastructure.services.reverse")
+@patch("core.infrastructure.services.reverse")
 @patch("django.conf.settings.FROM_DOMAIN", "http://testserver")
 def test_verification_service_generate_email_verification_link(
     mock_reverse: Mock,
@@ -110,7 +112,7 @@ def test_verification_service_generate_email_verification_link(
     )
 
 
-@patch("apps.authentication.infrastructure.services.cache")
+@patch("core.infrastructure.services.cache")
 def test_cache_service_get(mock_cache: Mock, cache_service: DjangoCacheServiceAdapter):
     mock_cache.get.return_value = "cached_value"
     result = cache_service.get("test_key")
@@ -118,7 +120,7 @@ def test_cache_service_get(mock_cache: Mock, cache_service: DjangoCacheServiceAd
     assert result == "cached_value"
 
 
-@patch("apps.authentication.infrastructure.services.cache")
+@patch("core.infrastructure.services.cache")
 @patch("django.conf.settings.DJANGO_CACHE_TIMEOUT", 900)
 def test_cache_service_set_with_default_timeout(
     mock_cache: Mock, cache_service: DjangoCacheServiceAdapter
@@ -127,7 +129,7 @@ def test_cache_service_set_with_default_timeout(
     mock_cache.set.assert_called_once_with("test_key", "test_value", 900)
 
 
-@patch("apps.authentication.infrastructure.services.cache")
+@patch("core.infrastructure.services.cache")
 def test_cache_service_set_with_custom_timeout(
     mock_cache: Mock, cache_service: DjangoCacheServiceAdapter
 ):
@@ -135,7 +137,7 @@ def test_cache_service_set_with_custom_timeout(
     mock_cache.set.assert_called_once_with("test_key", "test_value", 60)
 
 
-@patch("apps.authentication.infrastructure.services.cache")
+@patch("core.infrastructure.services.cache")
 def test_cache_service_delete(
     mock_cache: Mock, cache_service: DjangoCacheServiceAdapter
 ):
@@ -143,7 +145,7 @@ def test_cache_service_delete(
     mock_cache.delete.assert_called_once_with("test_key")
 
 
-@patch("apps.authentication.infrastructure.services.cache")
+@patch("core.infrastructure.services.cache")
 def test_cache_service_delete_handles_exception(
     mock_cache: Mock, cache_service: DjangoCacheServiceAdapter
 ):
@@ -196,9 +198,9 @@ def test_email_service_send_verification_email_handles_exception(
     mock_send_template_email.assert_called_once()
 
 
-@patch("apps.authentication.infrastructure.services.render_to_string")
-@patch("apps.authentication.infrastructure.services.strip_tags")
-@patch("apps.authentication.infrastructure.services.EmailMultiAlternatives")
+@patch("core.infrastructure.services.render_to_string")
+@patch("core.infrastructure.services.strip_tags")
+@patch("core.infrastructure.services.EmailMultiAlternatives")
 @patch("django.conf.settings.DEFAULT_FROM_EMAIL", "noreply@test.com")
 def test_email_service_send_template_email_method_success(
     mock_email_multi_alternatives: Mock,

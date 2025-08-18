@@ -32,8 +32,9 @@ INSTALLED_APPS = [
     "oauth2_provider",
     "social_django",
     "drf_social_oauth2",
-    "apps.authentication.apps.AuthenticationConfig",
     "apps.users.apps.UsersConfig",
+    "apps.authentication.apps.AuthenticationConfig",
+    "apps.business_verification.apps.BusinessVerificationConfig",
 ]
 
 MIDDLEWARE = [
@@ -147,9 +148,6 @@ AUTH_USER_MODEL = "users.User"
 DEFAULT_FROM_EMAIL = env.str(
     "DEFAULT_FROM_EMAIL", default="noreply@housingandproperties.com"
 )
-EMAIL_BACKEND = env.str(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
-)
 
 DJANGO_VERIFICATION_TOKEN_EXPIRY = env.int(
     "DJANGO_VERIFICATION_TOKEN_EXPIRY", default=15
@@ -163,14 +161,6 @@ AUTHENTICATION_BACKENDS = [
 FROM_DOMAIN = env.str("FROM_DOMAIN", default="http://127.0.0.1:8000")
 
 DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)
-CACHES = {
-    "default": {
-        "BACKEND": env.str(
-            "DJANGO_CACHE_BACKEND",
-            default="django.core.cache.backends.locmem.LocMemCache",
-        ),
-    }
-}
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -212,12 +202,38 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env.str(
 SOCIAL_AUTH_GOOGLE_OAUTH2_USER_FIELDS = ["email", "first_name", "last_name"]
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["email", "profile"]
 
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env.str(
     "CELERY_RESULT_BACKEND", default="redis://localhost:6379/0"
 )
-CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
-CELERY_TASK_SERIALIZER = "pickle"
-CELERY_RESULT_SERIALIZER = "pickle"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env.str("REDIS_URL", default="redis://localhost:6379/0"),
+    }
+}
 
 FRONTEND_URL = env.str("FRONTEND_URL")
+
+BUSINESS_VERIFICATION_PROVIDER = env.str(
+    "BUSINESS_VERIFICATION_PROVIDER", default="youverify"
+)
+
+YOUVERIFY_BASE_URL = env.str(
+    "YOUVERIFY_BASE_URL", default="https://api.sandbox.youverify.co"
+)
+YOUVERIFY_API_TOKEN = env.str("YOUVERIFY_API_TOKEN", default="")
+
+EMAIL_BACKEND = env.str(
+    "EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend"
+)
+EMAIL_HOST = env.str("EMAIL_HOST", "")
+EMAIL_PORT = env.int("EMAIL_PORT", 0)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", "")

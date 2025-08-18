@@ -24,16 +24,18 @@ from apps.authentication.infrastructure.repositories import (
     DjangoBlackListedTokenRepository,
 )
 from apps.authentication.infrastructure.services import (
-    DjangoCacheServiceAdapter,
-    DjangoEmailServiceAdapter,
-    DjangoEventPublisherAdapter,
     DjangoJWTTokenAdapter,
     DjangoPasswordServiceAdapter,
-    DjangoVerificationServiceAdapter,
     SocialAuthenticationAdapter,
 )
 from apps.users.infrastructure.repositories import DjangoUserRepository
 from core.application.event_bus import EventBus
+from core.infrastructure.factory import (
+    get_cache_service,
+    get_email_service,
+    get_verification_service,
+)
+from core.infrastructure.services import DjangoEventPublisherAdapter
 
 
 def get_user_repository():
@@ -42,18 +44,6 @@ def get_user_repository():
 
 def get_password_service():
     return DjangoPasswordServiceAdapter()
-
-
-def get_verification_service():
-    return DjangoVerificationServiceAdapter()
-
-
-def get_cache_service():
-    return DjangoCacheServiceAdapter()
-
-
-def get_email_service():
-    return DjangoEmailServiceAdapter()
 
 
 def get_jwt_token_service():

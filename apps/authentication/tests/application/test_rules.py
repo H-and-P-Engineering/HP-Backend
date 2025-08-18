@@ -6,8 +6,6 @@ import pytest
 from faker import Faker
 
 from apps.authentication.application.ports import (
-    CacheServiceAdapterInterface,
-    EventPublisherInterface,
     JWTTokenAdapterInterface,
     PasswordServiceAdapterInterface,
     SocialAuthenticationAdapterInterface,
@@ -25,6 +23,7 @@ from apps.authentication.domain.models import BlackListedToken
 from apps.users.application.ports import UserRepositoryInterface
 from apps.users.domain.models import User as DomainUser
 from core.application.exceptions import BusinessRuleException
+from core.application.ports import CacheServiceAdapterInterface, EventPublisherInterface
 
 
 @pytest.fixture

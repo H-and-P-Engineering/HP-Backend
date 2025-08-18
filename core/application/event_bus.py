@@ -16,5 +16,12 @@ class EventBus:
 
     @classmethod
     def publish(cls, event: DomainEvent) -> None:
+        exceptions = []
         for handler in cls._handlers.get(type(event), []):
-            handler(event)
+            try:
+                handler(event)
+            except Exception as e:
+                exceptions.append(e)
+
+        if exceptions:
+            raise exceptions[0]
