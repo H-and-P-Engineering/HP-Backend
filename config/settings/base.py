@@ -4,10 +4,20 @@ from pathlib import Path
 import dj_database_url
 import environ
 
+from app.core.logging import setup_logging
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
+
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOGS_DIR / "hp.log"
+LOG_FILE.touch(exist_ok=True)
+LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
+
+setup_logging(log_level=LOGGING_LEVEL, log_file=LOG_FILE)
 
 SECRET_KEY = env.str(
     "DJANGO_SECRET_KEY",
@@ -32,9 +42,9 @@ INSTALLED_APPS = [
     "oauth2_provider",
     "social_django",
     "drf_social_oauth2",
-    "apps.users.apps.UsersConfig",
-    "apps.authentication.apps.AuthenticationConfig",
-    "apps.business_verification.apps.BusinessVerificationConfig",
+    "app.presentation.apps.UsersConfig",
+    "app.presentation.apps.AuthenticationConfig",
+    "app.presentation.apps.BusinessVerificationConfig",
 ]
 
 MIDDLEWARE = [
@@ -47,7 +57,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "apps.authentication.infrastructure.middleware.TokenBlackListMiddleware",
+    "app.infrastructure.authentication.middleware.TokenBlackListMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -55,7 +65,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "core/infrastructure/templates"],
+        "DIRS": [BASE_DIR / "app/presentation/templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -120,7 +130,7 @@ REST_FRAMEWORK = {
         "user": "10/min",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "core.infrastructure.exceptions.hp_exception_handler",
+    "EXCEPTION_HANDLER": "app.core.exceptions.custom_exception_handler",
 }
 
 CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
@@ -162,12 +172,6 @@ FROM_DOMAIN = env.str("FROM_DOMAIN", default="http://127.0.0.1:8000")
 
 DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)
 
-LOGS_DIR = BASE_DIR / "logs"
-LOGS_DIR.mkdir(exist_ok=True)
-LOG_FILE = LOGS_DIR / "hp.log"
-LOG_FILE.touch(exist_ok=True)
-LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
@@ -190,7 +194,7 @@ SOCIAL_AUTH_PIPELINE = [
     "social_core.pipeline.social_auth.auth_allowed",
     "social_core.pipeline.social_auth.social_user",
     "social_core.pipeline.social_auth.associate_by_email",
-    "apps.authentication.infrastructure.pipelines.create_user",
+    "app.infrastructure.users.pipeline.create_user",
     "social_core.pipeline.social_auth.associate_user",
     "social_core.pipeline.user.user_details",
 ]

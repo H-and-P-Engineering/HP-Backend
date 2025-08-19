@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.business_verification.presentation.views import (
+from app.presentation.views.business_verification import (
     create_business_profile,
     get_business_verification_status,
     verify_business,
