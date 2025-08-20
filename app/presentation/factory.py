@@ -255,6 +255,8 @@ def register_business_verification_event_handlers():
         lambda event: send_business_verification_success_email(
             event,
             email_service,
+            cache_service,
+            verification_service,
             business_verification_repository,
             business_profile_repository,
         ),

@@ -91,6 +91,8 @@ def process_business_verification_event(
 def send_business_verification_success_email(
     event: BusinessVerificationStatusEvent,
     email_service: DjangoEmailService,
+    cache_service: DjangoCacheService,
+    verification_service: DjangoVerificationService,
     business_verification_repository: DjangoBusinessVerificationRepository,
     business_profile_repository: DjangoBusinessProfileRepository,
 ) -> None:
@@ -102,13 +104,27 @@ def send_business_verification_success_email(
 
         if not verification or not profile:
             return
+        
+        email_service.send_business_verification_success_email(
+            recipient_email=verification.business_email,
+            business_name=verification.business_name,
+            registration_number=verification.business_registration_number,
+            provider_reference=verification.verification_provider_reference,
+        )
 
         if not profile.is_business_email_verified:
-            email_service.send_business_verification_success_email(
-                recipient_email=verification.business_email,
-                business_name=verification.business_name,
-                registration_number=verification.business_registration_number,
-                provider_reference=verification.verification_provider_reference,
+            token = verification_service.generate_token()
+
+            cache_service.set(
+                f"email_verify_{str(verification.uuid)}", (verification.id, token)
+            )
+
+            link = verification_service.generate_email_verification_link(
+                verification.uuid, token, is_business=True
+            )
+
+            email_service.send_verification_email(
+                verification.business_email, verification_link=link
             )
 
 

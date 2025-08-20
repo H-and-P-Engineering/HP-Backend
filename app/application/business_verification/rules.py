@@ -148,12 +148,6 @@ class ProcessBusinessVerificationRule:
             )
 
             if result.success:
-                self.business_verification_repository.update(
-                    verification,
-                    verification_status=VerificationStatus.SUCCESSFUL,
-                    provider_reference=result.provider_reference,
-                )
-
                 if event:
                     self.event_publisher.publish(
                         event(
@@ -164,6 +158,12 @@ class ProcessBusinessVerificationRule:
                             business_email=verification.business_email,
                         )
                     )
+
+                self.business_verification_repository.update(
+                    verification,
+                    verification_status=VerificationStatus.SUCCESSFUL,
+                    provider_reference=result.provider_reference,
+                )
             else:
                 self.business_verification_repository.update(
                     verification,
