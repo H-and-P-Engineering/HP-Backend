@@ -125,7 +125,6 @@ class DjangoBusinessProfileRepository(IBusinessProfileRepository):
             for key, value in kwargs.items():
                 if hasattr(django_profile, key) and key not in [
                     "user_id",
-                    "verification_id",
                     "uuid",
                     "id",
                     "created_at",

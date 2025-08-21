@@ -152,7 +152,7 @@ def verify_business_email(
 
 
 @extend_schema(
-    request=None,
+    request=BusinessEmailVerificationRequestSerializer,
     responses={
         200: SuccessResponseExampleSerializer,
         400: ErrorResponseExampleSerializer,

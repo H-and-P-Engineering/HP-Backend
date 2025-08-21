@@ -27,13 +27,13 @@ urlpatterns = [
         name="business-verification-status",
     ),
     path(
-        "verify-business-email/<str:verification_uuid>/<str:verification_token>/",
-        verify_business_email,
-        name="verify-business-email",
-    ),
-    path(
         "verify-business-email/request/",
         verify_business_email_request,
         name="verify-business-email-request",
+    ),
+    path(
+        "verify-business-email/<str:verification_uuid>/<str:verification_token>/",
+        verify_business_email,
+        name="verify-business-email",
     ),
 ]
