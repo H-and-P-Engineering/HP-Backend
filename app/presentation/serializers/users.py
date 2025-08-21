@@ -13,7 +13,7 @@ class UserResponseSerializer(serializers.Serializer):
         user: DomainUser = obj.get("user")
         if user:
             return {
-                "id": str(user.uuid),
+                "id": user.id,
                 "email": user.email,
                 "user_type": (
                     user.user_type.value
