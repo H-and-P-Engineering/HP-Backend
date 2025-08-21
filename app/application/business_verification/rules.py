@@ -107,8 +107,10 @@ class InitiateBusinessVerificationRule:
             created_verification = self.business_verification_repository.create(
                 verification
             )
-            
-            self.business_profile_repository.update(profile, verification_id=created_verification.id)
+
+            self.business_profile_repository.update(
+                profile, verification_id=created_verification.id
+            )
 
             verification_instance = created_verification
 

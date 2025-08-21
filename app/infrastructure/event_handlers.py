@@ -104,7 +104,7 @@ def send_business_verification_success_email(
 
         if not verification or not profile:
             return
-        
+
         email_service.send_business_verification_success_email(
             recipient_email=verification.business_email,
             business_name=verification.business_name,
