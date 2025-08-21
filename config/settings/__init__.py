@@ -10,8 +10,8 @@ environ.Env.read_env(BASE_DIR / ".env")
 ENVIRONMENT = env.str("DJANGO_ENVIRONMENT", default="development")
 
 if ENVIRONMENT == "production":
-    from config.settings.production import *
+    from .production import *
 elif ENVIRONMENT == "test":
-    from config.settings.test import *
+    from .test import *
 else:
-    from config.settings.development import *
+    from .development import *

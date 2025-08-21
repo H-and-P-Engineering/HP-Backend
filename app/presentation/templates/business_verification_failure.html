@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Verification Failed</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f8f9fa; padding: 30px; border: 1px solid #dee2e6; }
+        .footer { background-color: #6c757d; color: white; padding: 15px; text-align: center; border-radius: 0 0 8px 8px; font-size: 12px; }
+        .error-icon { font-size: 48px; margin-bottom: 10px; }
+        .business-details { background-color: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #dc3545; }
+        .next-steps { background-color: #fff3cd; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="error-icon">❌</div>
+        <h1>Business Verification Failed</h1>
+    </div>
+    
+    <div class="content">
+        <h2>We couldn't verify your business</h2>
+        <p>Unfortunately, we were unable to verify your business with the provided information. This may be due to various reasons.</p>
+        
+        <div class="business-details">
+            <h3>Submitted Business Details:</h3>
+            <p><strong>Business Name:</strong> {{ business_name }}</p>
+            <p><strong>Registration Number:</strong> {{ registration_number }}</p>
+            <p><strong>Verification Date:</strong> {{ verification_date }}</p>
+            {% if error_reason %}
+            <p><strong>Reason:</strong> {{ error_reason }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="next-steps">
+            <h3>🔧 What can you do next?</h3>
+            <ul>
+                <li><strong>Check your information:</strong> Ensure your business name and registration number are exactly as registered</li>
+                <li><strong>Verify registration status:</strong> Confirm your business is properly registered with relevant authorities</li>
+                <li><strong>Update your profile:</strong> Correct any information and try verification again</li>
+                <li><strong>Contact support:</strong> If you believe this is an error, reach out to our support team</li>
+            </ul>
+        </div>
+        
+        <p><strong>Common reasons for verification failure:</strong></p>
+        <ul>
+            <li>Business name doesn't match official registration</li>
+            <li>Registration number is incorrect or improperly formatted</li>
+            <li>Business is not registered in our supported regions</li>
+            <li>Registration is expired or inactive</li>
+        </ul>
+        
+        <p>You can retry verification after correcting your business information. If you need assistance, please contact our support team.</p>
+    </div>
+    
+    <div class="footer">
+        <p>Housing & Properties Team<br>
+        This is an automated message. Please do not reply to this email.</p>
+    </div>
+</body>
+</html>

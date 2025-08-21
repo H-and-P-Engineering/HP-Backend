@@ -4,10 +4,20 @@ from pathlib import Path
 import dj_database_url
 import environ
 
+from app.core.logging import setup_logging
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
+
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOGS_DIR / "hp.log"
+LOG_FILE.touch(exist_ok=True)
+LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
+
+setup_logging(log_level=LOGGING_LEVEL, log_file=LOG_FILE)
 
 SECRET_KEY = env.str(
     "DJANGO_SECRET_KEY",
@@ -32,8 +42,9 @@ INSTALLED_APPS = [
     "oauth2_provider",
     "social_django",
     "drf_social_oauth2",
-    "apps.authentication.apps.AuthenticationConfig",
-    "apps.users.apps.UsersConfig",
+    "app.presentation.apps.UsersConfig",
+    "app.presentation.apps.AuthenticationConfig",
+    "app.presentation.apps.BusinessVerificationConfig",
 ]
 
 MIDDLEWARE = [
@@ -46,7 +57,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "apps.authentication.infrastructure.middleware.TokenBlackListMiddleware",
+    "app.infrastructure.authentication.middleware.TokenBlackListMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -54,7 +65,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "core/infrastructure/templates"],
+        "DIRS": [BASE_DIR / "app/presentation/templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -119,7 +130,7 @@ REST_FRAMEWORK = {
         "user": "10/min",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "core.infrastructure.exceptions.hp_exception_handler",
+    "EXCEPTION_HANDLER": "app.core.exceptions.custom_exception_handler",
 }
 
 CORS_ALLOWED_ORIGINS = env.str("CORS_ALLOWED_ORIGINS", default="").split(",")
@@ -147,9 +158,6 @@ AUTH_USER_MODEL = "users.User"
 DEFAULT_FROM_EMAIL = env.str(
     "DEFAULT_FROM_EMAIL", default="noreply@housingandproperties.com"
 )
-EMAIL_BACKEND = env.str(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
-)
 
 DJANGO_VERIFICATION_TOKEN_EXPIRY = env.int(
     "DJANGO_VERIFICATION_TOKEN_EXPIRY", default=15
@@ -163,20 +171,6 @@ AUTHENTICATION_BACKENDS = [
 FROM_DOMAIN = env.str("FROM_DOMAIN", default="http://127.0.0.1:8000")
 
 DJANGO_CACHE_TIMEOUT = env.int("DJANGO_CACHE_TIMEOUT", default=900)
-CACHES = {
-    "default": {
-        "BACKEND": env.str(
-            "DJANGO_CACHE_BACKEND",
-            default="django.core.cache.backends.locmem.LocMemCache",
-        ),
-    }
-}
-
-LOGS_DIR = BASE_DIR / "logs"
-LOGS_DIR.mkdir(exist_ok=True)
-LOG_FILE = LOGS_DIR / "hp.log"
-LOG_FILE.touch(exist_ok=True)
-LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
@@ -200,7 +194,7 @@ SOCIAL_AUTH_PIPELINE = [
     "social_core.pipeline.social_auth.auth_allowed",
     "social_core.pipeline.social_auth.social_user",
     "social_core.pipeline.social_auth.associate_by_email",
-    "apps.authentication.infrastructure.pipelines.create_user",
+    "app.infrastructure.users.pipeline.create_user",
     "social_core.pipeline.social_auth.associate_user",
     "social_core.pipeline.user.user_details",
 ]
@@ -212,12 +206,38 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env.str(
 SOCIAL_AUTH_GOOGLE_OAUTH2_USER_FIELDS = ["email", "first_name", "last_name"]
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["email", "profile"]
 
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env.str(
     "CELERY_RESULT_BACKEND", default="redis://localhost:6379/0"
 )
-CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
-CELERY_TASK_SERIALIZER = "pickle"
-CELERY_RESULT_SERIALIZER = "pickle"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env.str("REDIS_URL", default="redis://localhost:6379/0"),
+    }
+}
 
 FRONTEND_URL = env.str("FRONTEND_URL")
+
+BUSINESS_VERIFICATION_PROVIDER = env.str(
+    "BUSINESS_VERIFICATION_PROVIDER", default="youverify"
+)
+
+YOUVERIFY_BASE_URL = env.str(
+    "YOUVERIFY_BASE_URL", default="https://api.sandbox.youverify.co"
+)
+YOUVERIFY_API_TOKEN = env.str("YOUVERIFY_API_TOKEN", default="")
+
+EMAIL_BACKEND = env.str(
+    "EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend"
+)
+EMAIL_HOST = env.str("EMAIL_HOST", "")
+EMAIL_PORT = env.int("EMAIL_PORT", 0)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", "")
