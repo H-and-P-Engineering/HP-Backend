@@ -1,2 +1,0 @@
-class BusinessRuleException(Exception):
-    pass

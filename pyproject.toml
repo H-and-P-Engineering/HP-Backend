@@ -39,7 +39,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["api","apps","core","config"]
+packages = ["api","app","config"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
@@ -59,10 +59,10 @@ norecursedirs = [
     "staticfiles",
     "migrations",
 ]
-testpaths = ["apps", "core"]
+testpaths = ["app"]
 
 [tool.coverage.run]
-source = ["apps", "core", "config"]
+source = ["app", "config"]
 omit = [
     "*/migrations/*",
     "*/tests/*", 

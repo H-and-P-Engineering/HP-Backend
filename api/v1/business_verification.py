@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.business_verification.presentation.views import (
+from app.presentation.views.business_verification import (
     create_business_profile,
     get_business_verification_status,
     verify_business,
@@ -27,13 +27,13 @@ urlpatterns = [
         name="business-verification-status",
     ),
     path(
-        "verify-business-email/<str:verification_uuid>/<str:verification_token>/",
-        verify_business_email,
-        name="verify-business-email",
-    ),
-    path(
         "verify-business-email/request/",
         verify_business_email_request,
         name="verify-business-email-request",
+    ),
+    path(
+        "verify-business-email/<str:verification_uuid>/<str:verification_token>/",
+        verify_business_email,
+        name="verify-business-email",
     ),
 ]
