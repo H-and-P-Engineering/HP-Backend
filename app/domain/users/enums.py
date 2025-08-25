@@ -3,8 +3,9 @@ from typing import List, Tuple
 
 
 class UserType(StrEnum):
-    CLIENT = "CLIENT"
-    AGENT = "AGENT"
+    BUYER = "BUYER"
+    HOUSE_AGENT = "HOUSE_AGENT"
+    LAND_AGENT = "LAND_AGENT"
     VENDOR = "VENDOR"
     SERVICE_PROVIDER = "SERVICE_PROVIDER"
     ADMIN = "ADMIN"

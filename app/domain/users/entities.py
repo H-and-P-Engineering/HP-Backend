@@ -13,7 +13,7 @@ class User:
     first_name: str = ""
     last_name: str = ""
     phone_number: str = ""
-    user_type: UserType = UserType.CLIENT
+    user_type: UserType = UserType.BUYER
     is_email_verified: bool = False
     is_active: bool = True
     is_staff: bool = False
