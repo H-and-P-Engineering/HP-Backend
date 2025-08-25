@@ -102,7 +102,7 @@ class VerifyEmailRule:
 
     def __call__(
         self, user_uuid: str, token: str, event: Callable[[Any], Any] | None = None
-    ) -> None:
+    ) -> Dict[str, Any]:
         cached_data = self.cache_service.get(f"email_verify_{user_uuid}")
         if cached_data:
             cached_id, cached_token = cached_data
@@ -125,6 +125,8 @@ class VerifyEmailRule:
 
         if event:
             self.event_publisher.publish(event(user.id))
+
+        return {"user_type": user.user_type}
 
 
 class LoginUserRule:

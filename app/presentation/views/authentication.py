@@ -114,10 +114,13 @@ def verify_email_request(request: Request) -> Response:
 @throttle_classes([AnonRateThrottle])
 def verify_email(request: Request, user_uuid: str, verification_token: str) -> Response:
     verify_email_rule = get_verify_email_rule()
-    verify_email_rule(user_uuid, verification_token, event=UserEmailVerifiedEvent)
+    user_data = verify_email_rule(
+        user_uuid, verification_token, event=UserEmailVerifiedEvent
+    )
 
     return StandardResponse.success(
-        message="Email verification successful. Welcome to Housing & Properties!"
+        message="Email verification successful. Welcome to Housing & Properties!",
+        data=user_data,
     )
 
 
