@@ -13,7 +13,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     user_type = models.CharField(
-        max_length=16, choices=DomainUserType.choices, default=DomainUserType.CLIENT
+        max_length=16, choices=DomainUserType.choices, default=DomainUserType.BUYER
     )
     is_email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

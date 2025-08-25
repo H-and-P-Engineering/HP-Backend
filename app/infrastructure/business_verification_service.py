@@ -34,8 +34,7 @@ class BusinessVerificationService:
         if response.status_code == 200:
             data = response.json()
             if (
-                data.get("success")
-                and data.get("data", {}).get("status") == "found"
+                data.get("success") and data.get("data", {}).get("status") == "found"
                 # and data.get("data", {}).get("email") == business_email
             ):
                 return BusinessVerificationResult(
