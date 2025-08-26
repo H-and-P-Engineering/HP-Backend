@@ -168,6 +168,7 @@ class LoginUserRule:
             )
 
         tokens = self.create_jwt_tokens(user)
+        user.is_new = False
 
         return user, tokens
 
