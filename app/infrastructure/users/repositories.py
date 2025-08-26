@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type
+from typing import Any, Dict
 
 from loguru import logger
 from social_core.utils import (
@@ -65,7 +65,7 @@ class DjangoUserRepository(IUserRepository):
             for key, value in kwargs.items():
                 if (
                     hasattr(django_user, key)
-                    and key not in ["password", "password_hash", "created_at"]
+                    and key not in ["password_hash", "created_at"]
                     and value not in [UserType.ADMIN]
                 ):
                     setattr(django_user, key, value)

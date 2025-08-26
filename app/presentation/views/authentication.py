@@ -194,7 +194,7 @@ def logout_user(request: Request) -> Response:
 @permission_classes([AllowAny])
 @throttle_classes([AnonRateThrottle])
 def begin_social_authentication(request: Request, backend_name: str) -> Any:
-    user_type = request.query_params.get("user_type", "CLIENT")
+    user_type = request.query_params.get("user_type", "BUYER")
 
     social_authentication_rule = get_social_authentication_rule()
     return social_authentication_rule.begin_authentication(
@@ -243,7 +243,7 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 
     cache_service = get_cache_service()
     cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
-    
+
     redirect_url = f"{settings.FRONTEND_SIGNUP_URL if is_new_user else settings.FRONTEND_LOGIN_URL}?is_new={is_new_user}"
     response = HttpResponse(status=303)
     response["Location"] = redirect_url
