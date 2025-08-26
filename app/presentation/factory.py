@@ -13,7 +13,7 @@ from app.application.business_verification.rules import (
     RequestBusinessEmailVerificationRule,
     VerifyBusinessEmailRule,
 )
-from app.application.users.rules import UpdateUserTypeRule
+from app.application.users.rules import UpdateUserDataRule, UpdateUserTypeRule
 from app.core.events import EventBus
 from app.infrastructure.authentication.events import (
     UserEmailVerifiedEvent,
@@ -98,6 +98,14 @@ def get_cache_service():
 
 def get_register_user_rule():
     return RegisterUserRule(
+        user_repository=get_user_repository(),
+        hash_password=hash_password,
+        event_publisher=get_event_publisher(),
+    )
+
+
+def get_update_data_rule():
+    return UpdateUserDataRule(
         user_repository=get_user_repository(),
         hash_password=hash_password,
         event_publisher=get_event_publisher(),

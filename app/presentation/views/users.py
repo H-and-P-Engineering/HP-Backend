@@ -6,13 +6,17 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
 from app.infrastructure.users.events import UserUpdateEvent
-from app.presentation.factory import get_update_user_type_rule
+from app.presentation.factory import get_update_user_type_rule, get_update_data_rule
 from app.presentation.responses import StandardResponse
 from app.presentation.serializers.examples import (
     ErrorResponseExampleSerializer,
     SuccessResponseExampleSerializer,
 )
-from app.presentation.serializers.users import UpdateUserTypeSerializer
+from app.presentation.serializers.users import (
+    UpdateSocialRegistrationDataSerializer,
+    UpdateUserTypeSerializer,
+    UserResponseSerializer,
+)
 
 
 @extend_schema(
@@ -38,4 +42,38 @@ def update_user_type(request: Request) -> Response:
 
     return StandardResponse.updated(
         message="User Type update successful.",
+    )
+
+
+@extend_schema(
+    request=UpdateSocialRegistrationDataSerializer,
+    responses={
+        201: SuccessResponseExampleSerializer,
+        400: ErrorResponseExampleSerializer,
+        500: ErrorResponseExampleSerializer,
+    },
+    description="Update user data after social registration.",
+    tags=["Users"],
+)
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def update_social_registration_data(request: Request) -> Response:
+    serializer = UpdateSocialRegistrationDataSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    validated_data = serializer.validated_data
+
+    social_registration_update_rule = get_update_data_rule()
+    user = social_registration_update_rule(
+        user_id=request.user.id,
+        event=UserUpdateEvent,
+        phone_number=validated_data["phone_number"],
+        password=validated_data["password"],
+    )
+
+    response_serializer = UserResponseSerializer(dict(user=user))
+
+    return StandardResponse.updated(
+        data=response_serializer.data,
+        message="Social registration data update successful.",
     )

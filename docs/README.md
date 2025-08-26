@@ -353,6 +353,41 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
+### 4.2. 🔄 Update Social Registration Data
+
+- **🔗 Endpoint:** `/api/v1/users/update-social-data/`
+- **📡 HTTP Method:** `PUT`
+- **📝 Description:** Update user data after social registration
+- **🔐 Authentication:** Required (Bearer Token)
+
+**📤 Request Body:**
+```json
+{
+  "phone_number": "+2340000000000",
+  "password": "SecurePassword1!"
+}
+```
+
+**✅ Success Response (Status: 202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "Social registration data update successful.",
+  "data": {
+    "user": {
+    "id": "1",
+    "email": "user@example.com",
+    "user_type": "BUYER",
+    "first_name": "John",
+    "last_name": "Doe",
+    "is_email_verified": true,
+    "is_new": false,
+    "phone_number": "+2340000000000",
+  },
+  "status_code": 202
+}
+```
+
 ---
 
 ## 🏢 Business Verification API

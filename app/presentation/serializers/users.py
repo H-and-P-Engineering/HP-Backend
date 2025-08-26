@@ -1,5 +1,6 @@
 from typing import Any, Dict
 
+from app.infrastructure.password_service import validate_password_value
 from rest_framework import serializers
 
 from app.domain.users.entities import User as DomainUser
@@ -38,5 +39,15 @@ class UpdateUserTypeSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "User type for regular users cannot be 'ADMIN'."
             )
+
+        return value
+
+
+class UpdateSocialRegistrationDataSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(max_length=20, required=True)
+    password = serializers.CharField(required=True)
+
+    def validate_password(self, value: str) -> str:
+        validate_password_value(value)
 
         return value

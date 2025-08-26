@@ -1,6 +1,6 @@
-import re
 from typing import Any, Dict
 
+from app.infrastructure.password_service import validate_password_value
 from rest_framework import serializers
 
 from app.domain.users.entities import User as DomainUser
@@ -20,28 +20,7 @@ class UserRegistrationSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True, max_length=20)
 
     def validate_password(self, value: str) -> str:
-        if " " in value:
-            raise serializers.ValidationError("Password must not contain spaces.")
-
-        if not re.search(r"[A-Z]", value):
-            raise serializers.ValidationError(
-                "Password must contain at least one uppercase letter."
-            )
-
-        if not re.search(r"[a-z]", value):
-            raise serializers.ValidationError(
-                "Password must contain at least one lowercase letter."
-            )
-
-        if not re.search(r"\d", value):
-            raise serializers.ValidationError(
-                "Password must contain at least one digit."
-            )
-
-        if not re.search(r"[!@#$%^&*(),.?\"\'{}|<>]", value):
-            raise serializers.ValidationError(
-                "Password must contain at least one special character."
-            )
+        validate_password_value(value)
 
         return value
 
