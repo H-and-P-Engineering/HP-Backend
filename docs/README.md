@@ -531,6 +531,8 @@ DJANGO_DATABASE_URL=postgresql://user:password@localhost:5432/housing_properties
 DJANGO_VERIFICATION_TOKEN_EXPIRY=15
 FROM_DOMAIN=http://127.0.0.1:8000
 FRONTEND_URL=http://localhost:3000
+FRONTEND_SIGNUP_URL=http://localhost:3000/signup
+FRONTEND_LOGIN_URL=http://localhost:3000/signin
 FRONTEND_VERIFICATION_URL=http://localhost:3000/verify_email
 
 # Email Configuration
