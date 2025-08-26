@@ -145,7 +145,7 @@ docker-compose exec web uv run manage.py createsuperuser
   "first_name": "John",
   "last_name": "Doe",
   "phone_number": "+1234567890",
-  "user_type": "CLIENT"
+  "user_type": "BUYER"
 }
 ```
 
@@ -158,7 +158,7 @@ docker-compose exec web uv run manage.py createsuperuser
     "user": {
       "id": "uuid-here",
       "email": "user@example.com",
-      "user_type": "CLIENT",
+      "user_type": "BUYER",
       "first_name": "John",
       "last_name": "Doe",
       "phone_number": "+1234567890",
@@ -196,7 +196,7 @@ docker-compose exec web uv run manage.py createsuperuser
     "user": {
       "id": "1",
       "email": "user@example.com",
-      "user_type": "CLIENT",
+      "user_type": "BUYER",
       "first_name": "John",
       "last_name": "Doe",
       "phone_number": "+1234567890",
@@ -273,7 +273,9 @@ docker-compose exec web uv run manage.py createsuperuser
 {
   "success": true,
   "message": "Email verification successful. Welcome to Housing & Properties!",
-  "data": null,
+  "data": {
+    "user_type": "BUYER"
+  },
   "status_code": 200
 }
 ```
@@ -286,7 +288,7 @@ docker-compose exec web uv run manage.py createsuperuser
 - **📝 Description:** Initiate Google OAuth2 login
 - **🔐 Authentication:** Not Required
 - **🔗 Query Parameters:**
-  - `user_type`: string (optional) - User type (CLIENT, AGENT, VENDOR, SERVICE_PROVIDER)
+  - `user_type`: string (optional) - User type (BUYER, AGENT, VENDOR, SERVICE_PROVIDER)
 
 #### Complete Social Authentication
 - **🔗 Endpoint:** `/api/v1/authentication/social/complete/google-oauth2/`
@@ -311,7 +313,7 @@ docker-compose exec web uv run manage.py createsuperuser
     "user": {
       "id": "1",
       "email": "user@example.com",
-      "user_type": "CLIENT",
+      "user_type": "BUYER",
       "first_name": "John",
       "last_name": "Doe",
       "is_email_verified": true,
@@ -337,7 +339,7 @@ docker-compose exec web uv run manage.py createsuperuser
 ```json
 {
   "email": "user@example.com",
-  "user_type": "AGENT"
+  "user_type": "LAND_AGENT"
 }
 ```
 
@@ -359,7 +361,7 @@ docker-compose exec web uv run manage.py createsuperuser
 
 - **🔗 Endpoint:** `/api/v1/business-verification/create-profile/`
 - **📡 HTTP Method:** `POST`
-- **📝 Description:** Create a business profile (for AGENT, VENDOR, SERVICE_PROVIDER only)
+- **📝 Description:** Create a business profile (for HOUSE_AGENT, LAND_AGENT, VENDOR, SERVICE_PROVIDER only)
 - **🔐 Authentication:** Required (Bearer Token)
 
 **📤 Request Body:**
@@ -529,6 +531,9 @@ DJANGO_DATABASE_URL=postgresql://user:password@localhost:5432/housing_properties
 DJANGO_VERIFICATION_TOKEN_EXPIRY=15
 FROM_DOMAIN=http://127.0.0.1:8000
 FRONTEND_URL=http://localhost:3000
+FRONTEND_SIGNUP_URL=http://localhost:3000/signup
+FRONTEND_LOGIN_URL=http://localhost:3000/signin
+FRONTEND_VERIFICATION_URL=http://localhost:3000/verify_email
 
 # Email Configuration
 DEFAULT_FROM_EMAIL=noreply@housingandproperties.com
@@ -559,11 +564,12 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ### 🔧 User Types
 
 ```python
-CLIENT = "CLIENT"              # Regular users browsing properties
-AGENT = "AGENT"               # Real estate agents
-VENDOR = "VENDOR"             # Service providers and contractors
+BUYER = "BUYER"                        # Regular users browsing properties
+HOUSE_AGENT = "HOUSE_AGENT"            # Real estate agents (housing)
+LAND_AGENT = "LAND_AGENT"              # Real estate agents (land)
+VENDOR = "VENDOR"                      # Service providers and contractors
 SERVICE_PROVIDER = "SERVICE_PROVIDER"  # Additional service providers
-ADMIN = "ADMIN"               # System administrators
+ADMIN = "ADMIN"                        # System administrators
 ```
 
 ### 📋 Business Verification Statuses

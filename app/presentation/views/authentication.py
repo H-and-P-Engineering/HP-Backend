@@ -114,10 +114,13 @@ def verify_email_request(request: Request) -> Response:
 @throttle_classes([AnonRateThrottle])
 def verify_email(request: Request, user_uuid: str, verification_token: str) -> Response:
     verify_email_rule = get_verify_email_rule()
-    verify_email_rule(user_uuid, verification_token, event=UserEmailVerifiedEvent)
+    user_data = verify_email_rule(
+        user_uuid, verification_token, event=UserEmailVerifiedEvent
+    )
 
     return StandardResponse.success(
-        message="Email verification successful. Welcome to Housing & Properties!"
+        message="Email verification successful. Welcome to Housing & Properties!",
+        data=user_data,
     )
 
 
@@ -240,8 +243,8 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
 
     cache_service = get_cache_service()
     cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
-
-    redirect_url = f"{settings.FRONTEND_URL}?is_new={is_new_user}"
+    
+    redirect_url = f"{settings.FRONTEND_SIGNUP_URL if is_new_user else settings.FRONTEND_LOGIN_URL}?is_new={is_new_user}"
     response = HttpResponse(status=303)
     response["Location"] = redirect_url
     response.set_cookie(

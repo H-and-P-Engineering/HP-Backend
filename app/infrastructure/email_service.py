@@ -24,23 +24,10 @@ class DjangoVerificationService:
         is_business: bool = False,
     ) -> str:
         if is_business:
-            path = reverse(
-                "business_verification:verify-business-email",
-                kwargs={
-                    "verification_uuid": verification_uuid,
-                    "verification_token": verification_token,
-                },
-            )
+            verification_url = f"{settings.FRONTEND_VERIFICATION_URL}?verification_uuid={verification_uuid}&verification_token={verification_token}&is_business={is_business}"
         else:
-            path = reverse(
-                "authentication:verify-email",
-                kwargs={
-                    "user_uuid": verification_uuid,
-                    "verification_token": verification_token,
-                },
-            )
+            verification_url = f"{settings.FRONTEND_VERIFICATION_URL}?user_uuid={verification_uuid}&verification_token={verification_token}&is_business={is_business}"
 
-        verification_url = f"{settings.FROM_DOMAIN}{path}"
         return verification_url
 
 

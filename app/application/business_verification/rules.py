@@ -37,7 +37,7 @@ class CreateBusinessProfileRule:
         if not user:
             raise BusinessRuleException("User not found")
 
-        if user.user_type in [UserType.CLIENT, UserType.ADMIN]:
+        if user.user_type in [UserType.BUYER, UserType.ADMIN]:
             raise BusinessRuleException("User does not need business profile")
 
         existing_profile = self.business_profile_repository.get_by_user_id(user_id)

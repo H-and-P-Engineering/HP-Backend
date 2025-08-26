@@ -96,7 +96,7 @@ class DjangoUserRepository(IUserRepository):
     def get_or_create_social_user(self, request: Any) -> DomainUser:
         backend = request.backend
         user = request.user
-        user_type = request.session.get("user_type", UserType.CLIENT)
+        user_type = request.session.get("user_type", UserType.BUYER)
 
         if "user_type" in request.session:
             del request.session["user_type"]
