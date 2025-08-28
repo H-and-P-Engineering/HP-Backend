@@ -67,6 +67,7 @@ def update_social_registration_data(request: Request) -> Response:
     user = social_registration_update_rule(
         user_id=request.user.id,
         event=UserUpdateEvent,
+        user_type=validated_data["user_type"],
         phone_number=validated_data["phone_number"],
         password=validated_data["password"],
     )

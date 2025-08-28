@@ -44,10 +44,19 @@ class UpdateUserTypeSerializer(serializers.Serializer):
 
 
 class UpdateSocialRegistrationDataSerializer(serializers.Serializer):
+    user_type = serializers.ChoiceField(required=True, choices=DomainUserType.choices())
     phone_number = serializers.CharField(max_length=20, required=True)
     password = serializers.CharField(required=True)
 
     def validate_password(self, value: str) -> str:
         validate_password_value(value)
+
+        return value
+    
+    def validate_user_type(self, value: str) -> str:
+        if value == "ADMIN":
+            raise serializers.ValidationError(
+                "User type for regular users cannot be 'ADMIN'."
+            )
 
         return value

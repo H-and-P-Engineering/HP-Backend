@@ -245,7 +245,7 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
     cache_service.set(f"social_auth_session_{session_id}", response_data, timeout=600)
 
     if is_new_user:
-        redirect_url = f"{settings.FRONTEND_SIGNUP_URL}"
+        redirect_url = f"{settings.FRONTEND_SIGNUP_URL}?is_new={is_new_user}"
     else:
         redirect_url = f"{settings.FRONTEND_LOGIN_URL}?is_new={is_new_user}"
 
