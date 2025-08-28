@@ -247,7 +247,7 @@ def complete_social_authentication(request: Request, backend_name: str) -> Respo
     if is_new_user:
         redirect_url = f"{settings.FRONTEND_SIGNUP_URL}"
     else:
-        redirect_url = f"{settings.FRONTEND_LOGIN_URL}?is_new={is_new_user}"
+        redirect_url = f"{settings.FRONTEND_LOGIN_URL}"
 
     response = HttpResponse(status=303)
     response["Location"] = redirect_url
