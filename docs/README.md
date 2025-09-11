@@ -9,7 +9,8 @@ A comprehensive Django-based marketplace platform implementing Clean Architectur
 3. [🔐 Authentication API](#-authentication-api)
 4. [👤 User Management API](#-user-management-api)
 5. [🏢 Business Verification API](#-business-verification-api)
-6. [⚙️ Configuration](#️-configuration)
+6. [📍 Location Intelligence API](#-location-intelligence-api)
+7. [⚙️ Configuration](#️-configuration)
 8. [🚀 Deployment](#-deployment)
 9. [🔧 Development Workflow](#-development-workflow)
 
@@ -54,6 +55,7 @@ housing_properties/
 - **✉️ Email Verification** system
 - **🏢 Business Verification** with external provider integration
 - **👥 Multi-type User Management** (CLIENT, AGENT, VENDOR, SERVICE_PROVIDER, ADMIN)
+- **📍 Location Intelligence** with nearby services and amenities
 - **⚡ Event-driven Architecture** with Celery
 - **📄 OpenAPI Documentation** with Swagger UI
 
@@ -67,6 +69,7 @@ housing_properties/
 | **Database** | PostgreSQL/SQLite | Latest |
 | **Task Queue** | Celery + Redis | >=5.3.1 |
 | **Documentation** | drf-spectacular | >=0.28.0 |
+| **Location Services** | Google Maps API | Latest |
 | **Package Manager** | uv | Latest |
 
 ---
@@ -78,6 +81,7 @@ housing_properties/
 - Python 3.12+
 - PostgreSQL 14+ (recommended for production)
 - Redis 6+ (for caching and Celery)
+- Google Maps API key (for location services)
 - uv (package manager)
 
 ### 🔧 Installation
@@ -548,6 +552,144 @@ docker-compose exec web uv run manage.py createsuperuser
 
 ---
 
+## 📍 Location Intelligence API
+
+### 6.1. 🗺️ Find Nearby Services
+
+- **🔗 Endpoint:** `/api/v1/location/nearby-services/`
+- **📡 HTTP Method:** `POST`
+- **📝 Description:** Get comprehensive location intelligence including nearby amenities
+- **🔐 Authentication:** Required (Bearer Token)
+
+**📤 Request Body:**
+```json
+{
+  "address": "Victoria Island, Lagos, Nigeria",
+  "service_types": ["BUS_STOP", "MARKET", "SCHOOL", "MALL", "HOSPITAL"],
+  "radius_km": 5.0
+}
+```
+
+**Alternative with coordinates:**
+```json
+{
+  "latitude": 6.4281,
+  "longitude": 3.4219,
+  "service_types": ["SCHOOL", "HOSPITAL", "BANK"],
+  "radius_km": 3.0
+}
+```
+
+**✅ Success Response (Status: 200 OK):**
+```json
+{
+  "success": true,
+  "message": "Location intelligence retrieved successfully",
+  "data": {
+    "location": {
+      "address": "Victoria Island, Lagos, Nigeria",
+      "latitude": 6.4281,
+      "longitude": 3.4219,
+      "city": "Lagos",
+      "state": "Lagos State",
+      "country": "NG"
+    },
+    "nearby_services": [
+      {
+        "name": "Lagos Business School",
+        "service_type": "SCHOOL",
+        "latitude": 6.4512,
+        "longitude": 3.4231,
+        "distance_km": 2.1,
+        "address": "Ajah-Epe Expressway, Lagos",
+        "phone_number": "+2341234567890",
+        "rating": 4.5,
+        "website": "https://www.lbs.edu.ng",
+        "business_hours": "8:00 AM - 6:00 PM",
+        "place_id": "ChIJN1t_tDeWGDQRMFY0..."
+      },
+      {
+        "name": "Lagos University Teaching Hospital",
+        "service_type": "HOSPITAL",
+        "latitude": 6.4672,
+        "longitude": 3.4156,
+        "distance_km": 3.2,
+        "address": "Idi-Araba, Lagos",
+        "phone_number": "+2341234567891",
+        "rating": 3.8,
+        "website": null,
+        "business_hours": "24 hours",
+        "place_id": "ChIJrTLr-GyuWWgRXMFY1..."
+      }
+    ],
+    "services_by_type": {
+      "SCHOOL": [
+        {
+          "name": "Lagos Business School",
+          "service_type": "SCHOOL",
+          "latitude": 6.4512,
+          "longitude": 3.4231,
+          "distance_km": 2.1,
+          "address": "Ajah-Epe Expressway, Lagos",
+          "phone_number": "+2341234567890",
+          "rating": 4.5,
+          "website": "https://www.lbs.edu.ng",
+          "business_hours": "8:00 AM - 6:00 PM",
+          "place_id": "ChIJN1t_tDeWGDQRMFY0..."
+        }
+      ],
+      "HOSPITAL": [
+        {
+          "name": "Lagos University Teaching Hospital",
+          "service_type": "HOSPITAL",
+          "latitude": 6.4672,
+          "longitude": 3.4156,
+          "distance_km": 3.2,
+          "address": "Idi-Araba, Lagos",
+          "phone_number": "+2341234567891",
+          "rating": 3.8,
+          "website": null,
+          "business_hours": "24 hours",
+          "place_id": "ChIJrTLr-GyuWWgRXMFY1..."
+        }
+      ]
+    },
+    "road_connectivity_score": 75.0,
+    "electricity_availability_score": 85.0,
+    "total_services_found": 12,
+    "summary": {
+      "total_services": 12,
+      "service_types_found": 5,
+      "has_transportation": true,
+      "has_shopping": true,
+      "has_education": true,
+      "has_healthcare": true
+    }
+  },
+  "status_code": 200
+}
+```
+
+### 6.2. 📋 Available Service Types
+
+The location intelligence API supports the following service types:
+
+| Service Type | Description | Google Places Mapping |
+|-------------|-------------|----------------------|
+| `BUS_STOP` | Public transportation | bus_station |
+| `MARKET` | Grocery stores, markets | supermarket |
+| `SCHOOL` | Educational institutions | school |
+| `MALL` | Shopping centers | shopping_mall |
+| `HOSPITAL` | Healthcare facilities | hospital |
+| `BANK` | Financial services | bank |
+| `RESTAURANT` | Dining establishments | restaurant |
+| `FUEL_STATION` | Petrol stations | gas_station |
+| `TRAIN_STATION` | Train Stations | train_station |
+| `TAXI_STAND` | Taxi Stands | taxi_stand |
+| `LANDMARK` | Points of interest | tourist_attraction |
+
+---
+
 ## ⚙️ Configuration
 
 ### 🔐 Environment Variables
@@ -569,6 +711,9 @@ FRONTEND_URL=http://localhost:3000
 FRONTEND_SIGNUP_URL=http://localhost:3000/signup
 FRONTEND_LOGIN_URL=http://localhost:3000/signin
 FRONTEND_VERIFICATION_URL=http://localhost:3000/verify_email
+
+# Google Maps API (Required for Location Services)
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 
 # Email Configuration
 DEFAULT_FROM_EMAIL=noreply@housingandproperties.com

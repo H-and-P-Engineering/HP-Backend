@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
 from app.infrastructure.users.events import UserUpdateEvent
-from app.presentation.factory import get_update_user_type_rule, get_update_data_rule
+from app.presentation.factory import get_update_data_rule, get_update_user_type_rule
 from app.presentation.responses import StandardResponse
 from app.presentation.serializers.examples import (
     ErrorResponseExampleSerializer,

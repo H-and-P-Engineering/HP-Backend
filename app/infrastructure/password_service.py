@@ -1,6 +1,7 @@
+import re
+
 from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.serializers import ValidationError
-import re
 
 
 def hash_password(password: str) -> str:

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "app.presentation.apps.UsersConfig",
     "app.presentation.apps.AuthenticationConfig",
     "app.presentation.apps.BusinessVerificationConfig",
+    "app.presentation.apps.LocationsConfig",
 ]
 
 MIDDLEWARE = [
@@ -223,7 +224,7 @@ CACHES = {
 
 FRONTEND_SIGNUP_URL = env.str("FRONTEND_SIGNUP_URL")
 FRONTEND_LOGIN_URL = env.str("FRONTEND_LOGIN_URL")
-FRONTEND_VERIFICATION_URL=env.str("FRONTEND_VERIFICATION_URL")
+FRONTEND_VERIFICATION_URL = env.str("FRONTEND_VERIFICATION_URL")
 
 BUSINESS_VERIFICATION_PROVIDER = env.str(
     "BUSINESS_VERIFICATION_PROVIDER", default="youverify"
@@ -243,3 +244,7 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", True)
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", "")
+
+GOOGLE_MAPS_API_KEY = env.str("GOOGLE_MAPS_API_KEY")
+GOOGLE_MAPS_GEOCODE_URL = env.str("GOOGLE_MAPS_GEOCODE_URL")
+GOOGLE_MAPS_SEARCH_URL = env.str("GOOGLE_MAPS_SEARCH_URL")

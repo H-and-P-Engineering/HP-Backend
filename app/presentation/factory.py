@@ -13,6 +13,7 @@ from app.application.business_verification.rules import (
     RequestBusinessEmailVerificationRule,
     VerifyBusinessEmailRule,
 )
+from app.application.location.rules import ProcessLocationQueryRule
 from app.application.users.rules import UpdateUserDataRule, UpdateUserTypeRule
 from app.core.events import EventBus
 from app.infrastructure.authentication.events import (
@@ -43,6 +44,7 @@ from app.infrastructure.event_handlers import (
     blacklist_jwt_token,
     cache_business_email_verification_status,
     cache_email_verification_status,
+    cache_processed_location,
     process_business_verification_event,
     send_business_verification_email_event,
     send_business_verification_failed_email,
@@ -54,6 +56,11 @@ from app.infrastructure.event_handlers import (
 )
 from app.infrastructure.event_publisher import EventPublisher
 from app.infrastructure.jwt_service import check_access_token_expiry, create_jwt_tokens
+from app.infrastructure.location.events import ProcessLocationEvent
+from app.infrastructure.location_service import (
+    GoogleGeocodingService,
+    GooglePlacesService,
+)
 from app.infrastructure.password_service import hash_password, password_check
 from app.infrastructure.social_auth_service import begin_social_auth
 from app.infrastructure.users.events import UserUpdateEvent
@@ -201,6 +208,15 @@ def get_business_email_verification_request_rule():
     )
 
 
+def get_process_location_query_rule():
+    return ProcessLocationQueryRule(
+        cache_service=get_cache_service(),
+        geocoding_service=GoogleGeocodingService(),
+        places_service=GooglePlacesService(),
+        event_publisher=get_event_publisher(),
+    )
+
+
 def register_user_event_handlers():
     user_repository = get_user_repository()
 
@@ -301,4 +317,13 @@ def register_business_verification_event_handlers():
             event,
             business_profile_repository,
         ),
+    )
+
+
+def register_location_event_handlers():
+    cache_service = get_cache_service()
+
+    EventBus.subscribe(
+        ProcessLocationEvent,
+        lambda event: cache_processed_location(event, cache_service),
     )

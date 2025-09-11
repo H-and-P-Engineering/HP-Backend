@@ -1,8 +1,8 @@
 from django.urls import path
 
 from app.presentation.views.users import (
-    update_user_type,
     update_social_registration_data,
+    update_user_type,
 )
 
 app_name = "users"

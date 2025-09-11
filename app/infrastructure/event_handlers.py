@@ -23,6 +23,7 @@ from app.infrastructure.email_service import (
     DjangoEmailService,
     DjangoVerificationService,
 )
+from app.infrastructure.location.events import ProcessLocationEvent
 from app.infrastructure.users.events import UserUpdateEvent
 from app.infrastructure.users.repositories import DjangoUserRepository
 
@@ -194,3 +195,10 @@ def update_business_email_verification_status(
         business_profile_repository.update(
             business_profile, is_business_email_verified=True
         )
+
+
+def cache_processed_location(
+    event: ProcessLocationEvent,
+    cache_service: DjangoCacheService,
+) -> None:
+    cache_service.set(event.cache_key, event.location_intelligence)

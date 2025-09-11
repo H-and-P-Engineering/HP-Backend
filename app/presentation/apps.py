@@ -32,3 +32,14 @@ class BusinessVerificationConfig(AppConfig):
         from .factory import register_business_verification_event_handlers
 
         register_business_verification_event_handlers()
+
+
+class LocationsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "app.infrastructure.location"
+    verbose_name = "Location"
+
+    def ready(self) -> None:
+        from .factory import register_location_event_handlers
+
+        register_location_event_handlers()

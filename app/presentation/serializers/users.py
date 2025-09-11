@@ -1,10 +1,10 @@
 from typing import Any, Dict
 
-from app.infrastructure.password_service import validate_password_value
 from rest_framework import serializers
 
 from app.domain.users.entities import User as DomainUser
 from app.domain.users.enums import UserType as DomainUserType
+from app.infrastructure.password_service import validate_password_value
 
 
 class UserResponseSerializer(serializers.Serializer):
@@ -52,7 +52,7 @@ class UpdateSocialRegistrationDataSerializer(serializers.Serializer):
         validate_password_value(value)
 
         return value
-    
+
     def validate_user_type(self, value: str) -> str:
         if value == "ADMIN":
             raise serializers.ValidationError(
