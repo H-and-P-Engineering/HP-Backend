@@ -1,65 +1,120 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Housing & Properties Backend API - Developer Guide](#housing--properties-backend-api---developer-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture Overview](#architecture-overview)
+    - [Core Principles](#core-principles)
+    - [Project Structure](#project-structure)
+    - [Key Features](#key-features)
+    - [Technology Stack](#technology-stack)
+  - [Quick Start](#quick-start)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Docker Setup (Alternative)](#docker-setup-alternative)
+    - [API Documentation](#api-documentation)
+  - [Authentication API](#authentication-api)
+    - [User Registration](#user-registration)
+    - [User Login](#user-login)
+    - [User Logout](#user-logout)
+    - [Request Email Verification](#request-email-verification)
+    - [Verify Email](#verify-email)
+    - [Social Authentication (Google)](#social-authentication-google)
+      - [Start Social Authentication](#start-social-authentication)
+      - [Complete Social Authentication](#complete-social-authentication)
+      - [Get Social Auth Data](#get-social-auth-data)
+  - [User Management API](#user-management-api)
+    - [Update User Type](#update-user-type)
+    - [Update Social Registration Data](#update-social-registration-data)
+  - [Business Verification API](#business-verification-api)
+    - [Create Business Profile](#create-business-profile)
+    - [Initiate Business Verification](#initiate-business-verification)
+    - [Get Business Verification Status](#get-business-verification-status)
+    - [Request Business Email Verification](#request-business-email-verification)
+    - [Verify Business Email](#verify-business-email)
+  - [Location Intelligence API](#location-intelligence-api)
+    - [Find Nearby Services](#find-nearby-services)
+    - [Available Service Types](#available-service-types)
+  - [Configuration](#configuration)
+    - [Environment Variables](#environment-variables)
+    - [User Types](#user-types)
+    - [Business Verification Statuses](#business-verification-statuses)
+  - [Deployment](#deployment)
+    - [Production Docker](#production-docker)
+    - [Production Security Checklist](#production-security-checklist)
+    - [Performance Optimization](#performance-optimization)
+  - [Development Workflow](#development-workflow)
+    - [Available Commands](#available-commands)
+    - [Code Quality](#code-quality)
+  - [Error Handling](#error-handling)
+    - [Standard Error Response Format](#standard-error-response-format)
+    - [Common Error Codes](#common-error-codes)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Housing & Properties Backend API - Developer Guide
 
 A comprehensive Django-based marketplace platform implementing Clean Architecture principles for real estate and property management.
 
-## 📋 Table of Contents
+## Table of Contents
 
-1. [🏗️ Architecture Overview](#️-architecture-overview)
-2. [🚀 Quick Start](#-quick-start)
-3. [🔐 Authentication API](#-authentication-api)
-4. [👤 User Management API](#-user-management-api)
-5. [🏢 Business Verification API](#-business-verification-api)
-6. [📍 Location Intelligence API](#-location-intelligence-api)
-7. [⚙️ Configuration](#️-configuration)
-8. [🚀 Deployment](#-deployment)
-9. [🔧 Development Workflow](#-development-workflow)
+1. [Architecture Overview](#architecture-overview)
+2. [Quick Start](#quick-start)
+3. [Authentication API](#authentication-api)
+4. [User Management API](#user-management-api)
+5. [Business Verification API](#business-verification-api)
+6. [Location Intelligence API](#location-intelligence-api)
+7. [Configuration](#configuration)
+8. [Deployment](#deployment)
+9. [Development Workflow](#development-workflow)
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
-### 🎯 Core Principles
+### Core Principles
 
 This project follows **Clean Architecture** with clear separation of concerns:
 
 ```
-📁 Domain Layer (Business Entities)
+Domain Layer (Business Entities)
     ↑
-📁 Application Layer (Use Cases/Business Rules)
+Application Layer (Use Cases/Business Rules)
     ↑
-📁 Infrastructure Layer (Data Access, External Services)
+Infrastructure Layer (Data Access, External Services)
     ↑
-📁 Presentation Layer (API Views, Serializers)
+Presentation Layer (API Views, Serializers)
 ```
 
-### 🏢 Project Structure
+### Project Structure
 
 ```
 housing_properties/
-├── 📁 api/                     # API routing & versioning
-│   └── v1/                     # Version 1 endpoints
-├── 📁 app/                     # Core application
-│   ├── application/            # Business rules & use cases
-│   ├── domain/                # Business entities & events
-│   ├── infrastructure/        # External integrations
-│   ├── presentation/          # API views & serializers
-│   └── core/                  # Shared utilities
-├── 📁 config/                 # Django configuration
-│   └── settings/              # Environment settings
-└── 📁 docs/                   # Documentation
+├── api/                     # API routing & versioning
+│   └── v1/                  # Version 1 endpoints
+├── app/                     # Core application
+│   ├── application/         # Business rules & use cases
+│   ├── domain/              # Business entities & events
+│   ├── infrastructure/      # External integrations
+│   ├── presentation/        # API views & serializers
+│   └── core/                # Shared utilities
+├── config/                  # Django configuration
+│   └── settings/            # Environment settings
+└── docs/                    # Documentation
 ```
 
-### 🎨 Key Features
+### Key Features
 
-- **🔐 JWT Authentication** with social login support
-- **✉️ Email Verification** system
-- **🏢 Business Verification** with external provider integration
-- **👥 Multi-type User Management** (CLIENT, AGENT, VENDOR, SERVICE_PROVIDER, ADMIN)
-- **📍 Location Intelligence** with nearby services and amenities
-- **⚡ Event-driven Architecture** with Celery
-- **📄 OpenAPI Documentation** with Swagger UI
+- JWT Authentication with social login support
+- Email Verification system
+- Business Verification with external provider integration
+- Multi-type User Management (CLIENT, AGENT, VENDOR, SERVICE_PROVIDER, ADMIN)
+- Location Intelligence with nearby services and amenities
+- Event-driven Architecture with Celery
+- OpenAPI Documentation with Swagger UI
 
-### 🛠️ Technology Stack
+### Technology Stack
 
 | Component | Technology | Version |
 |-----------|------------|---------|
@@ -74,9 +129,9 @@ housing_properties/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 📋 Prerequisites
+### Prerequisites
 
 - Python 3.12+
 - PostgreSQL 14+ (recommended for production)
@@ -84,7 +139,7 @@ housing_properties/
 - Google Maps API key (for location services)
 - uv (package manager)
 
-### 🔧 Installation
+### Installation
 
 1. **Clone and setup environment**
 ```bash
@@ -117,14 +172,14 @@ make superuser
 make run
 ```
 
-### 🐳 Docker Setup (Alternative)
+### Docker Setup (Alternative)
 
 ```bash
 docker-compose up --build
 docker-compose exec web uv run manage.py createsuperuser
 ```
 
-### 📚 API Documentation
+### API Documentation
 
 - **Swagger UI**: https://localhost:8000/api/docs/swagger/
 - **ReDoc**: https://localhost:8000/api/docs/redoc/
@@ -132,16 +187,16 @@ docker-compose exec web uv run manage.py createsuperuser
 
 ---
 
-## 🔐 Authentication API
+## Authentication API
 
-### 3.1. 📝 User Registration
+### User Registration
 
-- **🔗 Endpoint:** `/api/v1/authentication/register/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Register a new user with email verification
-- **🔐 Authentication:** Not Required
+- **Endpoint:** `/api/v1/authentication/register/`
+- **HTTP Method:** `POST`
+- **Description:** Register a new user with email verification
+- **Authentication:** Not Required
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "email": "user@example.com",
@@ -153,7 +208,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-**✅ Success Response (Status: 201 Created):**
+**Success Response (Status: 201 Created):**
 ```json
 {
   "success": true,
@@ -174,14 +229,14 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 3.2. 🔑 User Login
+### User Login
 
-- **🔗 Endpoint:** `/api/v1/authentication/login/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Authenticate user and receive JWT tokens
-- **🔐 Authentication:** Not Required
+- **Endpoint:** `/api/v1/authentication/login/`
+- **HTTP Method:** `POST`
+- **Description:** Authenticate user and receive JWT tokens
+- **Authentication:** Not Required
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "email": "user@example.com",
@@ -189,7 +244,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -212,21 +267,21 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 3.3. 🚪 User Logout
+### User Logout
 
-- **🔗 Endpoint:** `/api/v1/authentication/logout/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Logout user and blacklist access token
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/authentication/logout/`
+- **HTTP Method:** `POST`
+- **Description:** Logout user and blacklist access token
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
 }
 ```
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -236,21 +291,21 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 3.4. 📧 Request Email Verification
+### Request Email Verification
 
-- **🔗 Endpoint:** `/api/v1/authentication/verify-email/request/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Request a new email verification link
-- **🔐 Authentication:** Not Required
+- **Endpoint:** `/api/v1/authentication/verify-email/request/`
+- **HTTP Method:** `POST`
+- **Description:** Request a new email verification link
+- **Authentication:** Not Required
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "email": "user@example.com"
 }
 ```
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -260,19 +315,19 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 3.5. ✅ Verify Email
+### Verify Email
 
-- **🔗 Endpoint:** `/api/v1/authentication/verify-email/{user_uuid}/{verification_token}/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Verify user email address
-- **🔐 Authentication:** Not Required
-- **🔗 URL Parameters:**
+- **Endpoint:** `/api/v1/authentication/verify-email/{user_uuid}/{verification_token}/`
+- **HTTP Method:** `POST`
+- **Description:** Verify user email address
+- **Authentication:** Not Required
+- **URL Parameters:**
   - `user_uuid`: string (required) - User's UUID
   - `verification_token`: string (required) - Verification token from email
 
-**📤 Request Body:** None
+**Request Body:** None
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -284,29 +339,29 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 3.6. 🌐 Social Authentication (Google)
+### Social Authentication (Google)
 
 #### Start Social Authentication
-- **🔗 Endpoint:** `/api/v1/authentication/social/begin/google-oauth2/`
-- **📡 HTTP Method:** `GET`
-- **📝 Description:** Initiate Google OAuth2 login
-- **🔐 Authentication:** Not Required
-- **🔗 Query Parameters:**
+- **Endpoint:** `/api/v1/authentication/social/begin/google-oauth2/`
+- **HTTP Method:** `GET`
+- **Description:** Initiate Google OAuth2 login
+- **Authentication:** Not Required
+- **Query Parameters:**
   - `user_type`: string (optional) - User type (BUYER, AGENT, VENDOR, SERVICE_PROVIDER)
 
 #### Complete Social Authentication
-- **🔗 Endpoint:** `/api/v1/authentication/social/complete/google-oauth2/`
-- **📡 HTTP Method:** `GET`
-- **📝 Description:** Complete Google OAuth2 login (callback)
-- **🔐 Authentication:** Not Required
+- **Endpoint:** `/api/v1/authentication/social/complete/google-oauth2/`
+- **HTTP Method:** `GET`
+- **Description:** Complete Google OAuth2 login (callback)
+- **Authentication:** Not Required
 
 #### Get Social Auth Data
-- **🔗 Endpoint:** `/api/v1/authentication/social/data/`
-- **📡 HTTP Method:** `GET`
-- **📝 Description:** Retrieve social authentication user data
-- **🔐 Authentication:** Not Required
+- **Endpoint:** `/api/v1/authentication/social/data/`
+- **HTTP Method:** `GET`
+- **Description:** Retrieve social authentication user data
+- **Authentication:** Not Required
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -330,16 +385,16 @@ docker-compose exec web uv run manage.py createsuperuser
 
 ---
 
-## 👤 User Management API
+## User Management API
 
-### 4.1. 🔄 Update User Type
+### Update User Type
 
-- **🔗 Endpoint:** `/api/v1/users/update-user-type/`
-- **📡 HTTP Method:** `PUT`
-- **📝 Description:** Update user type for authenticated user
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/users/update-user-type/`
+- **HTTP Method:** `PUT`
+- **Description:** Update user type for authenticated user
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "email": "user@example.com",
@@ -347,7 +402,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-**✅ Success Response (Status: 202 Accepted):**
+**Success Response (Status: 202 Accepted):**
 ```json
 {
   "success": true,
@@ -357,14 +412,14 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 4.2. 🔄 Update Social Registration Data
+### Update Social Registration Data
 
-- **🔗 Endpoint:** `/api/v1/users/update-social-data/`
-- **📡 HTTP Method:** `PUT`
-- **📝 Description:** Update user data after social registration
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/users/update-social-data/`
+- **HTTP Method:** `PUT`
+- **Description:** Update user data after social registration
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "phone_number": "+2340000000000",
@@ -372,7 +427,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-**✅ Success Response (Status: 202 Accepted):**
+**Success Response (Status: 202 Accepted):**
 ```json
 {
   "success": true,
@@ -386,7 +441,7 @@ docker-compose exec web uv run manage.py createsuperuser
     "last_name": "Doe",
     "is_email_verified": true,
     "is_new": false,
-    "phone_number": "+2340000000000",
+    "phone_number": "+2340000000000"
   },
   "status_code": 202
 }
@@ -394,16 +449,16 @@ docker-compose exec web uv run manage.py createsuperuser
 
 ---
 
-## 🏢 Business Verification API
+## Business Verification API
 
-### 5.1. 🏗️ Create Business Profile
+### Create Business Profile
 
-- **🔗 Endpoint:** `/api/v1/business-verification/create-profile/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Create a business profile (for HOUSE_AGENT, LAND_AGENT, VENDOR, SERVICE_PROVIDER only)
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/business-verification/create-profile/`
+- **HTTP Method:** `POST`
+- **Description:** Create a business profile (for HOUSE_AGENT, LAND_AGENT, VENDOR, SERVICE_PROVIDER only)
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "business_name": "Acme Corporation",
@@ -416,7 +471,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-**✅ Success Response (Status: 201 Created):**
+**Success Response (Status: 201 Created):**
 ```json
 {
   "success": true,
@@ -439,21 +494,21 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 5.2. 🔍 Initiate Business Verification
+### Initiate Business Verification
 
-- **🔗 Endpoint:** `/api/v1/business-verification/verify/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Start business verification process with external provider
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/business-verification/verify/`
+- **HTTP Method:** `POST`
+- **Description:** Start business verification process with external provider
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "country_code": "NG"
 }
 ```
 
-**✅ Success Response (Status: 201 Created):**
+**Success Response (Status: 201 Created):**
 ```json
 {
   "success": true,
@@ -474,16 +529,16 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 5.3. 📊 Get Business Verification Status
+### Get Business Verification Status
 
-- **🔗 Endpoint:** `/api/v1/business-verification/status/`
-- **📡 HTTP Method:** `GET`
-- **📝 Description:** Get current business verification status
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/business-verification/status/`
+- **HTTP Method:** `GET`
+- **Description:** Get current business verification status
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:** None
+**Request Body:** None
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -504,21 +559,21 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 5.4. 📧 Request Business Email Verification
+### Request Business Email Verification
 
-- **🔗 Endpoint:** `/api/v1/business-verification/verify-email/request/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Request business email verification
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/business-verification/verify-email/request/`
+- **HTTP Method:** `POST`
+- **Description:** Request business email verification
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "business_email": "contact@acme.com"
 }
 ```
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -528,19 +583,19 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 5.5. ✅ Verify Business Email
+### Verify Business Email
 
-- **🔗 Endpoint:** `/api/v1/business-verification/verify-email/{verification_uuid}/{verification_token}/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Verify business email address
-- **🔐 Authentication:** Not Required
-- **🔗 URL Parameters:**
+- **Endpoint:** `/api/v1/business-verification/verify-email/{verification_uuid}/{verification_token}/`
+- **HTTP Method:** `POST`
+- **Description:** Verify business email address
+- **Authentication:** Not Required
+- **URL Parameters:**
   - `verification_uuid`: string (required) - Business verification UUID
   - `verification_token`: string (required) - Verification token from email
 
-**📤 Request Body:** None
+**Request Body:** None
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -552,16 +607,16 @@ docker-compose exec web uv run manage.py createsuperuser
 
 ---
 
-## 📍 Location Intelligence API
+## Location Intelligence API
 
-### 6.1. 🗺️ Find Nearby Services
+### Find Nearby Services
 
-- **🔗 Endpoint:** `/api/v1/location/nearby-services/`
-- **📡 HTTP Method:** `POST`
-- **📝 Description:** Get comprehensive location intelligence including nearby amenities
-- **🔐 Authentication:** Required (Bearer Token)
+- **Endpoint:** `/api/v1/location/nearby-services/`
+- **HTTP Method:** `POST`
+- **Description:** Get comprehensive location intelligence including nearby amenities
+- **Authentication:** Required (Bearer Token)
 
-**📤 Request Body:**
+**Request Body:**
 ```json
 {
   "address": "Victoria Island, Lagos, Nigeria",
@@ -580,7 +635,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-**✅ Success Response (Status: 200 OK):**
+**Success Response (Status: 200 OK):**
 ```json
 {
   "success": true,
@@ -670,7 +725,7 @@ docker-compose exec web uv run manage.py createsuperuser
 }
 ```
 
-### 6.2. 📋 Available Service Types
+### Available Service Types
 
 The location intelligence API supports the following service types:
 
@@ -690,9 +745,9 @@ The location intelligence API supports the following service types:
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-### 🔐 Environment Variables
+### Environment Variables
 
 ```env
 # Django Core
@@ -741,7 +796,7 @@ CELERY_RESULT_BACKEND=redis://localhost:6379/0
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
-### 🔧 User Types
+### User Types
 
 ```python
 BUYER = "BUYER"                        # Regular users browsing properties
@@ -752,7 +807,7 @@ SERVICE_PROVIDER = "SERVICE_PROVIDER"  # Additional service providers
 ADMIN = "ADMIN"                        # System administrators
 ```
 
-### 📋 Business Verification Statuses
+### Business Verification Statuses
 
 ```python
 PENDING = "PENDING"           # Initial state
@@ -760,11 +815,12 @@ IN_PROGRESS = "IN_PROGRESS"   # Being processed
 FAILED = "FAILED"             # Verification failed
 SUCCESSFUL = "SUCCESSFUL"     # Verification completed
 ```
+
 ---
 
-## 🚀 Deployment
+## Deployment
 
-### 🐳 Production Docker
+### Production Docker
 
 ```bash
 # Set environment
@@ -780,7 +836,7 @@ docker-compose exec web uv run manage.py collectstatic --noinput
 docker-compose exec web uv run manage.py migrate
 ```
 
-### 🔒 Production Security Checklist
+### Production Security Checklist
 
 - [ ] HTTPS enabled (`SECURE_SSL_REDIRECT = True`)
 - [ ] Strong secret key configured
@@ -792,7 +848,7 @@ docker-compose exec web uv run manage.py migrate
 - [ ] OAuth2 credentials secured
 - [ ] Monitoring and logging set up
 
-### 📈 Performance Optimization
+### Performance Optimization
 
 - **Database**: Connection pooling, strategic indexing
 - **Caching**: Redis for sessions and tokens
@@ -801,9 +857,9 @@ docker-compose exec web uv run manage.py migrate
 
 ---
 
-## 🔧 Development Workflow
+## Development Workflow
 
-### 📝 Available Commands
+### Available Commands
 
 ```bash
 make install     # Install dependencies
@@ -815,7 +871,7 @@ make run         # Run development server
 make clean       # Clean cache and temporary files
 ```
 
-### 🎨 Code Quality
+### Code Quality
 
 ```bash
 # Format code
@@ -824,11 +880,12 @@ make format
 # Run pre-commit hooks
 pre-commit run --all-files
 ```
+
 ---
 
-## 🚨 Error Handling
+## Error Handling
 
-### 📋 Standard Error Response Format
+### Standard Error Response Format
 
 ```json
 {
@@ -841,7 +898,7 @@ pre-commit run --all-files
 }
 ```
 
-### 🔍 Common Error Codes
+### Common Error Codes
 
 - **400 Bad Request** - Invalid request data
 - **401 Unauthorized** - Authentication required
@@ -851,4 +908,3 @@ pre-commit run --all-files
 - **422 Unprocessable Entity** - Validation errors
 - **429 Too Many Requests** - Rate limit exceeded
 - **500 Internal Server Error** - Server error
----
