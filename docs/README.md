@@ -3,7 +3,6 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Housing & Properties Backend API - Developer Guide](#housing--properties-backend-api---developer-guide)
-  - [Table of Contents](#table-of-contents)
   - [Architecture Overview](#architecture-overview)
     - [Core Principles](#core-principles)
     - [Project Structure](#project-structure)
@@ -56,18 +55,6 @@
 # Housing & Properties Backend API - Developer Guide
 
 A comprehensive Django-based marketplace platform implementing Clean Architecture principles for real estate and property management.
-
-## Table of Contents
-
-1. [Architecture Overview](#architecture-overview)
-2. [Quick Start](#quick-start)
-3. [Authentication API](#authentication-api)
-4. [User Management API](#user-management-api)
-5. [Business Verification API](#business-verification-api)
-6. [Location Intelligence API](#location-intelligence-api)
-7. [Configuration](#configuration)
-8. [Deployment](#deployment)
-9. [Development Workflow](#development-workflow)
 
 ---
 
