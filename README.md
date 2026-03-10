@@ -2,7 +2,6 @@
 
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 [![Django](https://img.shields.io/badge/django-6.0-green.svg)](https://djangoproject.com)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Real estate marketplace backend with JWT auth, business verification, and location intelligence.
 
