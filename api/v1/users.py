@@ -1,17 +1,11 @@
-from django.urls import path
+from django.urls import path, URLPattern
 
-from app.presentation.views.users import (
-    update_social_registration_data,
-    update_user_type,
+from users.views import (
+    update_user_data,
 )
 
 app_name = "users"
 
-urlpatterns = [
-    path("update-user-type/", update_user_type, name="update-user-type"),
-    path(
-        "update-social-data/",
-        update_social_registration_data,
-        name="update-social-data",
-    ),
+urlpatterns: list[URLPattern] = [
+    path("update/", update_user_data, name="update-data"),
 ]

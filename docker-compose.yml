@@ -112,7 +112,7 @@ services:
         echo 'Development environment detected, installing dev dependencies for Celery...'; 
         uv sync --extra dev; 
       fi && 
-      uv run celery -A app.core.celery.app worker --loglevel=info"
+      uv run celery -A core worker --loglevel=info"
     deploy:
       resources:
         limits:
@@ -124,7 +124,7 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "uv", "run", "celery", "-A", "app.core.celery.app", "inspect", "ping"]
+      test: ["CMD", "uv", "run", "celery", "-A", "core", "inspect", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,15 +1,10 @@
 from django.urls import path
 
-from app.presentation.views.location import (
-    find_nearby_services,
-)
+from location import views
 
 app_name = "location"
 
 urlpatterns = [
-    path(
-        "nearby-services/",
-        find_nearby_services,
-        name="nearby-services",
-    ),
+    path("nearby-services/", views.find_nearby_services, name="find-nearby-services"),
+    path("distance/", views.calculate_distance, name="calculate-distance"),
 ]

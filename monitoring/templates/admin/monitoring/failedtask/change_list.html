@@ -1,0 +1,15 @@
+{% extends "admin/change_list.html" %}
+{% load i18n static %}
+
+{% block object-tools-items %}
+    <li>
+        <form action="{% url 'admin:monitoring_failedtask_redrive_all_from_dlq' %}" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="button" style="background: #ba2121; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; height: 28px; line-height: 20px; font-size: 11px; margin-top: -3px; font-weight: 500;">
+                {% trans "Redrive All Failed Tasks from DLQ" %}
+            </button>
+        </form>
+    </li>
+
+    {{ block.super }}
+{% endblock %}

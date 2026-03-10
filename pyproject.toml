@@ -1,87 +1,23 @@
 [project]
-name = "housing-and-properties-backend"
+name = "hp-backend"
 version = "0.1.0"
-description = "Housing & Properties - Multi-sided marketplace (backend)"
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "celery[redis]>=5.3.1",
-    "dj-database-url>=3.0.0",
-    "django>=5.2.3",
-    "django-cors-headers>=4.7.0",
+    "adrf>=0.1.12",
+    "celery>=5.6.2",
+    "django>=6.0.1",
+    "django-cors-headers>=4.9.0",
     "django-environ>=0.12.0",
-    "django-redis>=6.0.0",
-    "djangorestframework>=3.16.0",
-    "djangorestframework-simplejwt>=5.5.0",
-    "drf-social-oauth2>=3.1.0",
-    "drf-spectacular>=0.28.0",
-    "drf-spectacular-sidecar>=2025.6.1",
-    "gunicorn>=23.0.0",
+    "djangorestframework>=3.16.1",
+    "djangorestframework-simplejwt>=5.5.1",
+    "drf-social-oauth2>=3.2.0",
+    "drf-spectacular[sidecar]>=0.29.0",
+    "gunicorn>=25.1.0",
+    "httpx>=0.28.1",
     "loguru>=0.7.3",
-    "pre-commit>=4.3.0",
-    "psycopg2-binary>=2.9.10",
-    "redis>=6.2.0",
-    "uuid6>=2025.0.0",
-    "whitenoise>=6.9.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "django-debug-toolbar>=5.2.0",
-    "django-extensions>=4.1",
-    "factory-boy>=3.3.0",
-    "faker>=37.3.0",
-    "pyopenssl>=25.1.0",
-    "pytest>=8.4.0",
-    "pytest-cov>=6.1.1",
-    "pytest-django>=4.9.0",
-    "pytest-mock>=3.12.0",
-    "werkzeug>=3.1.3",
-]
-
-[tool.setuptools]
-packages = ["api","app","config"]
-
-[tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.test"
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--verbose",
-    "--tb=short",
-]
-norecursedirs = [
-    "venv",
-    ".venv",
-    "node_modules",
-    "docs",
-    "logs",
-    "media",
-    "staticfiles",
-    "migrations",
-]
-testpaths = ["app"]
-
-[tool.coverage.run]
-source = ["app", "config"]
-omit = [
-    "*/migrations/*",
-    "*/tests/*",
-    "*/venv/*",
-    "*/virtualenv/*",
-    "manage.py",
-    "*/settings/*",
-    "*/wsgi.py",
-    "*/asgi.py",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+    "mapradar>=0.1.2",
+    "redis>=7.1.0",
+    "uuid6>=2025.0.1",
 ]
