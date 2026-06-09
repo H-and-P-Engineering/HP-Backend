@@ -46,7 +46,9 @@ class TokenBlackListMiddleware:
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
         if auth_header.startswith("Bearer "):
             access_token = auth_header.split(" ")[1]
-            if await container.blacklisted_token_repository().check_exists(access_token):
+            if await container.blacklisted_token_repository().check_exists(
+                access_token
+            ):
                 request.META["HTTP_AUTHORIZATION"] = ""
                 logger.warning(
                     "Blacklisted token attempted access",

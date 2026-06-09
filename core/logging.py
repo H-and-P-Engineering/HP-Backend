@@ -1,11 +1,12 @@
+import contextvars
+import json
 import logging
 import re
 import sys
-from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from loguru import logger
-
 
 SENSITIVE_KEYS = {
     "password",
@@ -71,56 +72,185 @@ def sanitize_data(data: Any) -> Any:
     return data
 
 
+request_context: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
+    "request_context", default=None
+)
+
+
+class LogFormat:
+    _LEVEL_COLOURS: dict[str, str] = {
+        "CRITICAL": "red",
+        "ERROR": "magenta",
+        "WARNING": "yellow",
+        "SUCCESS": "green",
+        "INFO": "blue",
+        "DEBUG": "white",
+        "TRACE": "dim",
+    }
+
+    def __init__(self, record: Any) -> None:
+        self._record = record
+        self.time_str = record["time"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        self.level = record["level"].name
+        self._colour = self._LEVEL_COLOURS.get(self.level, "white")
+
+        # Loguru exposes function name as "<module>" for top-level code;
+        # angle brackets must be escaped so Loguru doesn't treat them as markup.
+        func = record["function"]
+        self.location = (
+            f"{record['file'].name}:"
+            f"{'<module>' if func == '<module>' else func}:"
+            f"{record['line']}"
+        )
+
+    def console(self) -> str:
+        colour = self._colour
+        return (
+            f"<dim><bold>{self.time_str}</bold></dim> | "
+            f"<{colour}>{self.level:<8}</{colour}> | "
+            f"<cyan>{self.location}</cyan> - "
+            f"<{colour}>{self._record['message']}</{colour}>"
+            "\n"
+        )
+
+    def file(self) -> str:
+        extras = {
+            key: value
+            for key, value in self._record["extra"].items()
+            if key != "request_id" and value is not None
+        }
+
+        context_parts = []
+
+        for key, value in extras.items():
+            if isinstance(value, dict | list | tuple):
+                safe_value = json.dumps(value, default=str)
+            else:
+                safe_value = str(value)
+
+            # Escape braces so Loguru doesn't treat them as format placeholders
+            safe_value = safe_value.replace("{", "{{").replace("}", "}}")
+            context_parts.append(f"{key}={safe_value}")
+
+        context_str = f" | {', '.join(context_parts)}" if context_parts else ""
+
+        request_id = self._record["extra"].get("request_id", "")
+        rid_str = f" | rid={request_id}" if request_id else ""
+
+        return (
+            f"{self.time_str} | "
+            f"{self.level:<8} | "
+            f"{self.location}"
+            f"{rid_str}"
+            f" - {self._record['message']}"
+            f"{context_str}"
+            "\n"
+        )
+
+
+_LOGGING_FILE = logging.__file__.rstrip("c")  # strip trailing 'c' from .pyc if present
+
+
 class InterceptHandler(logging.Handler):
-    def emit(self, record: logging.LogRecord):
+    def emit(self, record: logging.LogRecord) -> None:
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
-        frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
+        frame: logging.FrameType | None = sys._getframe(1)  # type: ignore[assignment]
+        depth = 1
+        while frame:
+            # Normalise .pyc → .py so the comparison works across all Python/macOS combos
+            filename = frame.f_code.co_filename.rstrip("c")
+            if filename != _LOGGING_FILE:
+                break
+            frame = frame.f_back  # type: ignore[assignment]
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).bind(
-            logger_name=record.name
-        ).log(level, record.getMessage())
+        ctx = request_context.get() or {}
+        (
+            logger.opt(depth=depth, exception=record.exc_info)
+            .bind(**ctx)
+            .log(level, record.getMessage())
+        )
 
 
-@lru_cache(maxsize=1)
-def setup_logging(log_level: str, log_file: str):
-    logging.root.handlers = [InterceptHandler()]
+def _context_patcher(record: Any) -> None:  # type: ignore[type-arg]
+    ctx = request_context.get()
+    if ctx:
+        record["extra"].update(ctx)
+
+    record["message"] = sanitize_data(record["message"])
+
+
+def setup_logging(
+    log_level: str, log_file: Path = Path("logs/app.log"), environment: str = "local"
+) -> None:
+    is_local = environment.lower() in {"local", "dev", "development"}
+
+    logger.remove()
+
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
     logging.root.setLevel(log_level)
 
-    for file in logging.root.manager.loggerDict.keys():
-        logging.getLogger(file).handlers = []
-        logging.getLogger(file).propagate = True
+    for name in list(logging.root.manager.loggerDict):
+        lib_logger = logging.getLogger(name)
+        lib_logger.handlers = []
+        lib_logger.propagate = True
 
-    def should_log(record):
-        return record["extra"].get("target") != "file"
+    # Suppress Django's dev-server access log lines ("GET /... 200") — these
+    # are equivalent to uvicorn.access and add noise without useful context.
+    # django.request (error-level 500s) still propagates via the root logger.
+    logging.getLogger("django.server").propagate = False
 
-    logger.configure(
-        handlers=[
-            {
-                "sink": sys.stdout,
-                "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <5}</level> | <cyan>{file}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-                "filter": should_log,
-                "backtrace": True,
-                "diagnose": False,
-            },
-            {
-                "sink": log_file,
-                "rotation": "10 MB",
-                "retention": "10 days",
-                "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <5} | {file}:{line} - {message}",
-                "filter": should_log,
-                "backtrace": True,
-                "diagnose": False,
-            },
-        ],
-        patcher=lambda record: record.update(
-            extra=sanitize_data(record["extra"]),
-            message=sanitize_data(record["message"]),
-        ),
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    error_log_file = log_file.with_name(log_file.stem + "_errors" + log_file.suffix)
+
+    # Sink 1: stdout (coloured in local, JSON in production)
+    logger.add(
+        sys.stdout,
+        level=log_level,
+        colorize=is_local,
+        serialize=not is_local,  # JSON lines in staging/production
+        backtrace=False,
+        diagnose=is_local,  # full variable introspection locally only
+        format=lambda rec: LogFormat(rec).console(),
+    )
+
+    # Sink 2: rotating info+ file (always JSON for structured ingestion)
+    logger.add(
+        str(log_file),
+        level="INFO",
+        rotation="10 MB",
+        retention="10 days",
+        compression="zip",
+        enqueue=True,  # thread/async-safe writes
+        backtrace=True,
+        diagnose=False,  # never dump locals to disk (secrets)
+        serialize=True,
+        format=lambda rec: LogFormat(rec).file(),
+    )
+
+    # Sink 3: error-only file (long retention for post-mortems)
+    logger.add(
+        str(error_log_file),
+        level="ERROR",
+        rotation="10 MB",
+        retention="60 days",
+        compression="zip",
+        enqueue=True,
+        backtrace=True,
+        diagnose=False,
+        serialize=True,
+        format=lambda rec: LogFormat(rec).file(),
+    )
+
+    logger.configure(patcher=_context_patcher)
+
+    logger.info(
+        "Logging configured | level={} env={} file={}",
+        log_level,
+        environment,
+        log_file,
     )

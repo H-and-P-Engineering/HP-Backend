@@ -29,7 +29,11 @@ LOG_FILE = LOGS_DIR / "hp.log"
 LOG_FILE.touch(exist_ok=True)
 LOGGING_LEVEL = env.str("DJANGO_LOGGING_LEVEL", default="INFO")
 
-setup_logging(log_level=LOGGING_LEVEL, log_file=LOG_FILE)
+setup_logging(
+    log_level=LOGGING_LEVEL,
+    log_file=LOG_FILE,
+    environment=env.str("DJANGO_ENVIRONMENT"),
+)
 
 # Force Django to use our logging configuration
 LOGGING_CONFIG = None
@@ -73,8 +77,10 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
+    "core.middleware.RequestLoggingMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
