@@ -1,9 +1,9 @@
-from asgiref.sync import async_to_sync
 from typing import Any
 
+from asgiref.sync import async_to_sync
 from social_core.pipeline.user import USER_FIELDS
 
-from .repositories import user_repository
+from .repositories import UserRepository as user_repository
 
 
 def create_user(
