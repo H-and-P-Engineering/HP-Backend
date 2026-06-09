@@ -1,6 +1,9 @@
 from typing import Any, Dict, Type, TypeVar
 from users.repositories import UserRepository, BlackListedTokenRepository
-from business.repositories import BusinessProfileRepository, BusinessVerificationRepository
+from business.repositories import (
+    BusinessProfileRepository,
+    BusinessVerificationRepository,
+)
 from core.services import EmailService, VerificationService
 
 T = TypeVar("T")

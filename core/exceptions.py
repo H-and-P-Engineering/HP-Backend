@@ -1,4 +1,3 @@
-import traceback
 from typing import Any
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -93,19 +92,19 @@ def custom_exception_handler(
     elif isinstance(exc, ParseError):
         exc = UnprocessableEntityError(detail=str(exc.detail))
     elif isinstance(exc, (TypeError, AttributeError, KeyError, IndexError)):
-        logger.exception(
-            "Unhandled application error",
-            error_type=type(exc).__name__,
-            error=str(exc),
+        logger.opt(exception=True).error(
+            "Unhandled application error | type={} error={}",
+            type(exc).__name__,
+            str(exc),
         )
         exc = BaseAPIException(
             detail="Internal server error occurred. Please try again later."
         )
     elif not isinstance(exc, APIException):
-        logger.exception(
-            "Unhandled server error",
-            error_type=type(exc).__name__,
-            error=str(exc),
+        logger.opt(exception=True).error(
+            "Unhandled server error | type={} error={}",
+            type(exc).__name__,
+            str(exc),
         )
         exc = BaseAPIException(
             detail="Internal server error occurred. Please try again later."
@@ -121,20 +120,10 @@ def custom_exception_handler(
     }
 
     if response is None:
-        tb = traceback.extract_tb(exc.__traceback__)
-        if tb:
-            last_frame = tb[-1]
-            location = f'File "{last_frame.filename}", line {last_frame.lineno}, in {last_frame.name}\n    {last_frame.line}'
-        else:
-            location = "No traceback available"
-
-        exc_type = type(exc).__name__
-        exc_msg = str(exc)
-        logger.error(
-            "Unhandled exception after DRF handler",
-            error_type=exc_type,
-            error=exc_msg,
-            location=location,
+        logger.opt(exception=True).error(
+            "Unhandled exception after DRF handler | type={} error={}",
+            type(exc).__name__,
+            str(exc),
         )
 
         response_data["error"] = {"detail": "Internal server error"}
