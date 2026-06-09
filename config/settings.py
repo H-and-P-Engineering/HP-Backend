@@ -239,7 +239,6 @@ CACHE_LOCATION_TIMEOUT = env.int("CACHE_LOCATION_TIMEOUT", default=86400)
 
 SOCIAL_AUTH_USER_MODEL = "users.User"
 SOCIAL_AUTH_JSONFIELD_ENABLED = True
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 SOCIAL_AUTH_PIPELINE = [
     "social_core.pipeline.social_auth.social_details",
     "social_core.pipeline.social_auth.social_uid",
@@ -257,8 +256,17 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env.str(
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_USER_FIELDS = ["email", "first_name", "last_name"]
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ["email", "profile"]
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Only force HTTPS callback URLs in non-local environments.
+# The Django dev server only supports HTTP, so setting this True locally causes
+# Google to redirect back to https://127.0.0.1:8000/... which the dev server rejects.
+_IS_PRODUCTION = env.str("DJANGO_ENVIRONMENT", default="local").lower() not in {
+    "local",
+    "dev",
+    "development",
+}
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = _IS_PRODUCTION
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if _IS_PRODUCTION else None
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",

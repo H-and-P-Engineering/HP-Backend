@@ -1,7 +1,8 @@
-from asgiref.sync import async_to_sync
 from typing import Any
 
 from adrf.decorators import api_view
+from asgiref.sync import async_to_sync
+from django.http import HttpResponse
 from django.views.decorators import cache, csrf
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import permission_classes, throttle_classes
@@ -9,25 +10,25 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
-from django.http import HttpResponse
 from social_django.utils import psa
 
+from core.container import container
 from core.responses import StandardResponse
 from core.serializers import (
     ErrorResponseExampleSerializer,
     SuccessResponseExampleSerializer,
 )
+
 from .serializers import (
     EmailVerificationRequestSerializer,
     EmailVerificationSerializer,
+    JWTTokenSerializer,
+    UpdateUserDataSerializer,
+    UserLoginSerializer,
+    UserLogoutSerializer,
     UserRegistrationSerializer,
     UserResponseSerializer,
-    UserLoginSerializer,
-    JWTTokenSerializer,
-    UserLogoutSerializer,
-    UpdateUserDataSerializer,
 )
-from core.container import container
 
 
 @extend_schema(
@@ -196,7 +197,6 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
 
     auth_service = container.authentication_service()
 
-    # Invalidate any existing access token before redirecting to the OAuth provider
     async_to_sync(auth_service.blacklist_auth_token)(
         auth_header=request.headers.get("Authorization")
     )
@@ -221,15 +221,13 @@ def begin_social_authentication(request: Request, backend_name: str) -> Any:
 @permission_classes([AllowAny])
 @throttle_classes([AnonRateThrottle])
 def complete_social_authentication(request: Request, backend_name: str) -> Response:
-    user, tokens = async_to_sync(
-        container.authentication_service().complete_authentication
-    )(request)
+    auth_service = container.authentication_service()
+
+    user, tokens = auth_service.complete_authentication(request)
     user_serializer = UserResponseSerializer(user)
 
-    orchestration = (
-        container.authentication_service().orchestrate_social_login_response(
-            user=user, tokens=tokens, user_data=user_serializer.data
-        )
+    orchestration = auth_service.orchestrate_social_login_response(
+        user=user, tokens=tokens, user_data=user_serializer.data
     )
 
     redirect_url = orchestration["redirect_url"]

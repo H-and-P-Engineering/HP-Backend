@@ -250,7 +250,7 @@ class AuthenticationService:
     def begin_social_auth(self, request: Any, user_type: str) -> Any:
         return self.social_auth_service.begin_social_auth(request)
 
-    async def complete_authentication(
+    def complete_authentication(
         self, request: Any
     ) -> tuple[User, dict[str, Any]]:
         user = self.social_auth_service.get_or_create_social_user(request)
