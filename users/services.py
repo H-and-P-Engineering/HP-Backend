@@ -1,26 +1,28 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
-from uuid6 import UUID
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from loguru import logger
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from social_core.actions import do_auth
 from social_core.utils import (
     partial_pipeline_data,
     user_is_active,
     user_is_authenticated,
 )
+from uuid6 import UUID
 
+from core.container import container
 from core.exceptions import BadRequestError
 from core.interfaces import IEmailService
 from core.services import BaseCacheService
 from core.tasks import invalidate_previous_session_task, update_user_data_task
-from core.container import container
+
 from .models import User, UserType
-from .repositories import UserRepository, BlackListedTokenRepository
+from .repositories import BlackListedTokenRepository, UserRepository
 
 
 class UserCacheService(BaseCacheService):
@@ -309,6 +311,30 @@ class AuthenticationService:
             )
 
         return True
+
+    async def blacklist_auth_token(self, auth_header: str | None) -> None:
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return
+
+        raw_token = auth_header.split(" ", 1)[1].strip()
+        if not raw_token:
+            return
+
+        try:
+            token_obj = AccessToken(raw_token)
+            user_id = token_obj.get("user_id")
+            expires_at = datetime.fromtimestamp(token_obj.get("exp"), tz=UTC)
+
+            await self.blacklisted_token_repository.create(
+                access=token_obj, user_id=user_id, expires_at=expires_at
+            )
+            if user_id:
+                self.active_token_cache.delete_active_token(user_id)
+
+            logger.info("Blacklisted auth token before social auth", user_id=user_id)
+        except Exception:
+            # Expired, invalid, or already blacklisted — safe to ignore
+            pass
 
     def logout(self, user_id: int) -> None:
         invalidate_previous_session_task.delay(user_id)

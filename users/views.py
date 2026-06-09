@@ -194,11 +194,14 @@ async def logout_user(request: Request) -> Response:
 def begin_social_authentication(request: Request, backend_name: str) -> Any:
     user_type = request.query_params.get("user_type", "BUYER")
 
-    async_to_sync(container.authentication_service().blacklist_auth_token)(
+    auth_service = container.authentication_service()
+
+    # Invalidate any existing access token before redirecting to the OAuth provider
+    async_to_sync(auth_service.blacklist_auth_token)(
         auth_header=request.headers.get("Authorization")
     )
 
-    return container.authentication_service().begin_social_auth(request, user_type)
+    return auth_service.begin_social_auth(request, user_type)
 
 
 @extend_schema(
